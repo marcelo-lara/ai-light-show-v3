@@ -1,0 +1,20 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    volumes:
+      - ./backend:/app
+      - ./data:/data
+    command: python generator.py
+    # In the future, this might run a persistent server, but for now it just runs the generator script
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - ./data:/data
+      - /app/node_modules
+    command: npm run dev -- --host

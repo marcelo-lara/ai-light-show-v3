@@ -1,91 +1,276 @@
-<!doctype html>
-<html lang='en'>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<meta charset='utf-8'>
-<meta name='viewport' content='width=device-width, initial-scale=1'>
-<title>graphify-out / ai-light-show-v3</title>
+<meta charset="UTF-8">
+<title>graphify - graphify-out/graph.html</title>
+<script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
 <style>
-:root {
-  --bg: #050505;
-  --panel: #101418;
-  --line: #26313a;
-  --text: #f5f6fa;
-  --muted: #9aa4ad;
-  --accent: #ff7a18;
-}
-* { box-sizing: border-box; }
-body { margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: radial-gradient(circle at top, #13202b 0%, #050505 60%); color: var(--text); }
-header { padding: 24px 28px 10px; }
-h1 { margin: 0 0 8px; font-size: 28px; }
-p { margin: 0; color: var(--muted); max-width: 80ch; }
-main { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; padding: 18px 24px 28px; }
-.panel { background: rgba(16,20,24,0.92); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.35); }
-svg { width: 100%; height: auto; display: block; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0)); }
-.sidebar { padding: 18px; }
-.kv { margin: 0 0 14px; }
-.kv dt { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
-.kv dd { margin: 0; font-size: 15px; line-height: 1.45; }
-.badge { display: inline-block; padding: 4px 8px; border-radius: 999px; background: #1b2730; color: #dfe6e9; margin-right: 6px; margin-bottom: 6px; font-size: 12px; }
-.node { cursor: pointer; }
-.node:focus circle, .node:hover circle { stroke: white; stroke-width: 4; }
-.legend { padding: 0 24px 24px; color: var(--muted); font-size: 13px; display: flex; gap: 18px; flex-wrap: wrap; }
-.legend span::before { content: ''; display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; vertical-align: -1px; }
-.legend .c0::before { background: #ff7a18; }
-.legend .c1::before { background: #00b894; }
-.legend .c2::before { background: #4aa3ff; }
-@media (max-width: 980px) { main { grid-template-columns: 1fr; } }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0f0f1a; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; display: flex; height: 100vh; overflow: hidden; }
+  #graph { flex: 1; }
+  #sidebar { width: 280px; background: #1a1a2e; border-left: 1px solid #2a2a4e; display: flex; flex-direction: column; overflow: hidden; }
+  #search-wrap { padding: 12px; border-bottom: 1px solid #2a2a4e; }
+  #search { width: 100%; background: #0f0f1a; border: 1px solid #3a3a5e; color: #e0e0e0; padding: 7px 10px; border-radius: 6px; font-size: 13px; outline: none; }
+  #search:focus { border-color: #4E79A7; }
+  #search-results { max-height: 140px; overflow-y: auto; padding: 4px 12px; border-bottom: 1px solid #2a2a4e; display: none; }
+  .search-item { padding: 4px 6px; cursor: pointer; border-radius: 4px; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .search-item:hover { background: #2a2a4e; }
+  #info-panel { padding: 14px; border-bottom: 1px solid #2a2a4e; min-height: 140px; }
+  #info-panel h3 { font-size: 13px; color: #aaa; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+  #info-content { font-size: 13px; color: #ccc; line-height: 1.6; }
+  #info-content .field { margin-bottom: 5px; }
+  #info-content .field b { color: #e0e0e0; }
+  #info-content .empty { color: #555; font-style: italic; }
+  .neighbor-link { display: block; padding: 2px 6px; margin: 2px 0; border-radius: 3px; cursor: pointer; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 3px solid #333; }
+  .neighbor-link:hover { background: #2a2a4e; }
+  #neighbors-list { max-height: 160px; overflow-y: auto; margin-top: 4px; }
+  #legend-wrap { flex: 1; overflow-y: auto; padding: 12px; }
+  #legend-wrap h3 { font-size: 13px; color: #aaa; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .legend-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; cursor: pointer; border-radius: 4px; font-size: 12px; }
+  .legend-item:hover { background: #2a2a4e; padding-left: 4px; }
+  .legend-item.dimmed { opacity: 0.35; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .legend-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .legend-count { color: #666; font-size: 11px; }
+  #stats { padding: 10px 14px; border-top: 1px solid #2a2a4e; font-size: 11px; color: #555; }
+  #legend-controls { display: flex; gap: 6px; margin-bottom: 8px; }
+  #legend-controls button { flex: 1; background: #0f0f1a; border: 1px solid #3a3a5e; color: #aaa; padding: 4px 0; border-radius: 4px; font-size: 11px; cursor: pointer; }
+  #legend-controls button:hover { border-color: #4E79A7; color: #e0e0e0; }
 </style>
 </head>
 <body>
-<header>
-  <h1>ai-light-show-v3 graph</h1>
-  <p>Local graphify-style fallback output generated from repository docs. Click a node to inspect its source, community, rationale, and connected edges.</p>
-</header>
-<main>
-  <section class='panel'>
-    <svg viewBox='0 0 1100 760' role='img' aria-label='Knowledge graph'>
-      <g><line x1='180' y1='230' x2='180' y2='140' stroke='#e67e22' stroke-width='2' stroke-opacity='0.7' /><line x1='180' y1='230' x2='180' y2='320' stroke='#7f8c8d' stroke-width='2' stroke-opacity='0.7' /><line x1='180' y1='230' x2='180' y2='410' stroke='#7f8c8d' stroke-width='2' stroke-opacity='0.7' /><line x1='180' y1='230' x2='180' y2='500' stroke='#7f8c8d' stroke-width='2' stroke-opacity='0.7' /><line x1='180' y1='230' x2='180' y2='590' stroke='#7f8c8d' stroke-width='2' stroke-opacity='0.7' /><line x1='180' y1='230' x2='180' y2='770' stroke='#7f8c8d' stroke-width='2' stroke-opacity='0.7' /><line x1='550' y1='275' x2='180' y2='590' stroke='#7f8c8d' stroke-width='2' stroke-opacity='0.7' /><line x1='550' y1='545' x2='900' y2='140' stroke='#7f8c8d' stroke-width='2' stroke-opacity='0.7' /><line x1='550' y1='545' x2='900' y2='320' stroke='#7f8c8d' stroke-width='2' stroke-opacity='0.7' /><line x1='550' y1='545' x2='900' y2='500' stroke='#7f8c8d' stroke-width='2' stroke-opacity='0.7' /><line x1='180' y1='230' x2='180' y2='680' stroke='#7f8c8d' stroke-width='2' stroke-opacity='0.7' /><line x1='550' y1='140' x2='550' y2='410' stroke='#f1c40f' stroke-width='2' stroke-opacity='0.7' /><line x1='550' y1='275' x2='550' y2='410' stroke='#7f8c8d' stroke-width='2' stroke-opacity='0.7' /><line x1='900' y1='320' x2='900' y2='500' stroke='#f1c40f' stroke-width='2' stroke-opacity='0.7' /></g>
-      <g><text x='110' y='70' fill='#ff7a18' font-size='24' font-weight='700'>Project Frame</text><text x='480' y='70' fill='#00b894' font-size='24' font-weight='700'>Layout Flow</text><text x='830' y='70' fill='#4aa3ff' font-size='24' font-weight='700'>Diagnostics Cluster</text></g>
-      <g><g class='node' data-node='readme_ai_light_show_v3' tabindex='0'><circle cx='180' cy='140' r='18' fill='#ff7a18' stroke='#111' stroke-width='3'></circle><text x='208' y='145' fill='#f5f6fa' font-size='14'>ai-light-show-v3</text></g><g class='node' data-node='ui_specs_light_show_player_frontend' tabindex='0'><circle cx='180' cy='230' r='18' fill='#ff7a18' stroke='#111' stroke-width='3'></circle><text x='208' y='235' fill='#f5f6fa' font-size='14'>Light Show Player Frontend</text></g><g class='node' data-node='ui_specs_vite' tabindex='0'><circle cx='180' cy='320' r='18' fill='#ff7a18' stroke='#111' stroke-width='3'></circle><text x='208' y='325' fill='#f5f6fa' font-size='14'>Vite</text></g><g class='node' data-node='ui_specs_react' tabindex='0'><circle cx='180' cy='410' r='18' fill='#ff7a18' stroke='#111' stroke-width='3'></circle><text x='208' y='415' fill='#f5f6fa' font-size='14'>React</text></g><g class='node' data-node='ui_specs_typescript' tabindex='0'><circle cx='180' cy='500' r='18' fill='#ff7a18' stroke='#111' stroke-width='3'></circle><text x='208' y='505' fill='#f5f6fa' font-size='14'>TypeScript</text></g><g class='node' data-node='ui_specs_wavesurfer_js' tabindex='0'><circle cx='180' cy='590' r='18' fill='#ff7a18' stroke='#111' stroke-width='3'></circle><text x='208' y='595' fill='#f5f6fa' font-size='14'>WaveSurfer.js</text></g><g class='node' data-node='ui_specs_top_bar' tabindex='0'><circle cx='550' cy='140' r='18' fill='#00b894' stroke='#111' stroke-width='3'></circle><text x='578' y='145' fill='#f5f6fa' font-size='14'>Top Bar</text></g><g class='node' data-node='ui_specs_waveform_area' tabindex='0'><circle cx='550' cy='275' r='18' fill='#00b894' stroke='#111' stroke-width='3'></circle><text x='578' y='280' fill='#f5f6fa' font-size='14'>Waveform Area</text></g><g class='node' data-node='ui_specs_transport_controls_row' tabindex='0'><circle cx='550' cy='410' r='18' fill='#00b894' stroke='#111' stroke-width='3'></circle><text x='578' y='415' fill='#f5f6fa' font-size='14'>Transport Controls Row</text></g><g class='node' data-node='ui_specs_three_column_diagnostics_area' tabindex='0'><circle cx='550' cy='545' r='18' fill='#00b894' stroke='#111' stroke-width='3'></circle><text x='578' y='550' fill='#f5f6fa' font-size='14'>Three-Column Diagnostics Area</text></g><g class='node' data-node='ui_specs_dmx_monitor_panel' tabindex='0'><circle cx='900' cy='140' r='18' fill='#4aa3ff' stroke='#111' stroke-width='3'></circle><text x='928' y='145' fill='#f5f6fa' font-size='14'>DMX Monitor Panel</text></g><g class='node' data-node='ui_specs_event_log_panel' tabindex='0'><circle cx='900' cy='320' r='18' fill='#4aa3ff' stroke='#111' stroke-width='3'></circle><text x='928' y='325' fill='#f5f6fa' font-size='14'>Event Log Panel</text></g><g class='node' data-node='ui_specs_diagnostics_panel' tabindex='0'><circle cx='900' cy='500' r='18' fill='#4aa3ff' stroke='#111' stroke-width='3'></circle><text x='928' y='505' fill='#f5f6fa' font-size='14'>Diagnostics Panel</text></g><g class='node' data-node='ui_specs_playback_state_model' tabindex='0'><circle cx='180' cy='680' r='18' fill='#ff7a18' stroke='#111' stroke-width='3'></circle><text x='208' y='685' fill='#f5f6fa' font-size='14'>Playback State Model</text></g><g class='node' data-node='ui_specs_dark_technical_playback_console' tabindex='0'><circle cx='180' cy='770' r='18' fill='#ff7a18' stroke='#111' stroke-width='3'></circle><text x='208' y='775' fill='#f5f6fa' font-size='14'>Dark Technical Playback Console</text></g></g>
-    </svg>
-    <div class='legend'>
-      <span class='c0'>Project Frame</span>
-      <span class='c1'>Layout Flow</span>
-      <span class='c2'>Diagnostics Cluster</span>
+<div id="graph"></div>
+<div id="sidebar">
+  <div id="search-wrap">
+    <input id="search" type="text" placeholder="Search nodes..." autocomplete="off">
+    <div id="search-results"></div>
+  </div>
+  <div id="info-panel">
+    <h3>Node Info</h3>
+    <div id="info-content"><span class="empty">Click a node to inspect it</span></div>
+  </div>
+  <div id="legend-wrap">
+    <h3>Communities</h3>
+    <div id="legend-controls">
+      <button onclick="toggleAllCommunities(false)">Show All</button>
+      <button onclick="toggleAllCommunities(true)">Hide All</button>
     </div>
-  </section>
-  <aside class='panel sidebar' id='details'>
-    <div class='kv'><dt>Selected node</dt><dd>Light Show Player Frontend</dd></div>
-    <div class='kv'><dt>Source</dt><dd>ui-specs.md:1</dd></div>
-    <div class='kv'><dt>Community</dt><dd>Project Frame</dd></div>
-    <div class='kv'><dt>Rationale</dt><dd>Recreate the current Light Show Player interface with Vite and WaveSurfer.js while preserving the existing structure, look, and interaction model.</dd></div>
-    <div class='kv'><dt>Connections</dt><dd id='connections'></dd></div>
-  </aside>
-</main>
+    <div id="legend"></div>
+  </div>
+  <div id="stats">22 nodes &middot; 18 edges &middot; 7 communities</div>
+</div>
 <script>
-const graph = {"meta": {"source_path": "/home/darkangel/ai-light-show-v3", "generated_at": "2026-05-03T02:24:28.534633+00:00", "generator": "codex-local-graphify-fallback", "warning": "Generated without the external graphify package because installation was blocked in this environment.", "total_files": 2, "total_words": 1790}, "nodes": [{"id": "readme_ai_light_show_v3", "label": "ai-light-show-v3", "file_type": "document", "source_file": "README.md", "source_location": "README.md:1", "source_url": null, "captured_at": null, "author": null, "contributor": null, "community": 0, "community_label": "Project Frame"}, {"id": "ui_specs_light_show_player_frontend", "label": "Light Show Player Frontend", "file_type": "document", "source_file": "ui-specs.md", "source_location": "ui-specs.md:1", "source_url": null, "captured_at": null, "author": null, "contributor": null, "rationale": "Recreate the current Light Show Player interface with Vite and WaveSurfer.js while preserving the existing structure, look, and interaction model.", "community": 0, "community_label": "Project Frame"}, {"id": "ui_specs_vite", "label": "Vite", "file_type": "document", "source_file": "ui-specs.md", "source_location": "ui-specs.md:11", "source_url": null, "captured_at": null, "author": null, "contributor": null, "community": 0, "community_label": "Project Frame"}, {"id": "ui_specs_react", "label": "React", "file_type": "document", "source_file": "ui-specs.md", "source_location": "ui-specs.md:12", "source_url": null, "captured_at": null, "author": null, "contributor": null, "community": 0, "community_label": "Project Frame"}, {"id": "ui_specs_typescript", "label": "TypeScript", "file_type": "document", "source_file": "ui-specs.md", "source_location": "ui-specs.md:13", "source_url": null, "captured_at": null, "author": null, "contributor": null, "community": 0, "community_label": "Project Frame"}, {"id": "ui_specs_wavesurfer_js", "label": "WaveSurfer.js", "file_type": "document", "source_file": "ui-specs.md", "source_location": "ui-specs.md:14", "source_url": null, "captured_at": null, "author": null, "contributor": null, "community": 0, "community_label": "Project Frame"}, {"id": "ui_specs_top_bar", "label": "Top Bar", "file_type": "document", "source_file": "ui-specs.md", "source_location": "ui-specs.md:57", "source_url": null, "captured_at": null, "author": null, "contributor": null, "community": 1, "community_label": "Layout Flow"}, {"id": "ui_specs_waveform_area", "label": "Waveform Area", "file_type": "document", "source_file": "ui-specs.md", "source_location": "ui-specs.md:122", "source_url": null, "captured_at": null, "author": null, "contributor": null, "community": 1, "community_label": "Layout Flow"}, {"id": "ui_specs_transport_controls_row", "label": "Transport Controls Row", "file_type": "document", "source_file": "ui-specs.md", "source_location": "ui-specs.md:151", "source_url": null, "captured_at": null, "author": null, "contributor": null, "community": 1, "community_label": "Layout Flow"}, {"id": "ui_specs_three_column_diagnostics_area", "label": "Three-Column Diagnostics Area", "file_type": "document", "source_file": "ui-specs.md", "source_location": "ui-specs.md:187", "source_url": null, "captured_at": null, "author": null, "contributor": null, "community": 1, "community_label": "Layout Flow"}, {"id": "ui_specs_dmx_monitor_panel", "label": "DMX Monitor Panel", "file_type": "document", "source_file": "ui-specs.md", "source_location": "ui-specs.md:252", "source_url": null, "captured_at": null, "author": null, "contributor": null, "community": 2, "community_label": "Diagnostics Cluster"}, {"id": "ui_specs_event_log_panel", "label": "Event Log Panel", "file_type": "document", "source_file": "ui-specs.md", "source_location": "ui-specs.md:264", "source_url": null, "captured_at": null, "author": null, "contributor": null, "community": 2, "community_label": "Diagnostics Cluster"}, {"id": "ui_specs_diagnostics_panel", "label": "Diagnostics Panel", "file_type": "document", "source_file": "ui-specs.md", "source_location": "ui-specs.md:279", "source_url": null, "captured_at": null, "author": null, "contributor": null, "community": 2, "community_label": "Diagnostics Cluster"}, {"id": "ui_specs_playback_state_model", "label": "Playback State Model", "file_type": "document", "source_file": "ui-specs.md", "source_location": "ui-specs.md:319", "source_url": null, "captured_at": null, "author": null, "contributor": null, "community": 0, "community_label": "Project Frame"}, {"id": "ui_specs_dark_technical_playback_console", "label": "Dark Technical Playback Console", "file_type": "document", "source_file": "ui-specs.md", "source_location": "ui-specs.md:6", "source_url": null, "captured_at": null, "author": null, "contributor": null, "rationale": "The interface should feel like a compact technical playback console optimized for monitoring synchronized media playback.", "community": 0, "community_label": "Project Frame"}], "edges": [{"source": "ui_specs_light_show_player_frontend", "target": "readme_ai_light_show_v3", "relation": "references", "confidence": "AMBIGUOUS", "confidence_score": 0.57, "source_file": "ui-specs.md", "source_location": "ui-specs.md:5", "weight": 0.57}, {"source": "ui_specs_light_show_player_frontend", "target": "ui_specs_vite", "relation": "references", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "ui-specs.md", "source_location": "ui-specs.md:11", "weight": 1.0}, {"source": "ui_specs_light_show_player_frontend", "target": "ui_specs_react", "relation": "references", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "ui-specs.md", "source_location": "ui-specs.md:12", "weight": 1.0}, {"source": "ui_specs_light_show_player_frontend", "target": "ui_specs_typescript", "relation": "references", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "ui-specs.md", "source_location": "ui-specs.md:13", "weight": 1.0}, {"source": "ui_specs_light_show_player_frontend", "target": "ui_specs_wavesurfer_js", "relation": "references", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "ui-specs.md", "source_location": "ui-specs.md:14", "weight": 1.0}, {"source": "ui_specs_light_show_player_frontend", "target": "ui_specs_dark_technical_playback_console", "relation": "rationale_for", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "ui-specs.md", "source_location": "ui-specs.md:5", "weight": 1.0}, {"source": "ui_specs_waveform_area", "target": "ui_specs_wavesurfer_js", "relation": "references", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "ui-specs.md", "source_location": "ui-specs.md:127", "weight": 1.0}, {"source": "ui_specs_three_column_diagnostics_area", "target": "ui_specs_dmx_monitor_panel", "relation": "conceptually_related_to", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "ui-specs.md", "source_location": "ui-specs.md:192", "weight": 1.0}, {"source": "ui_specs_three_column_diagnostics_area", "target": "ui_specs_event_log_panel", "relation": "conceptually_related_to", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "ui-specs.md", "source_location": "ui-specs.md:192", "weight": 1.0}, {"source": "ui_specs_three_column_diagnostics_area", "target": "ui_specs_diagnostics_panel", "relation": "conceptually_related_to", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "ui-specs.md", "source_location": "ui-specs.md:192", "weight": 1.0}, {"source": "ui_specs_light_show_player_frontend", "target": "ui_specs_playback_state_model", "relation": "conceptually_related_to", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "ui-specs.md", "source_location": "ui-specs.md:319", "weight": 1.0}, {"source": "ui_specs_top_bar", "target": "ui_specs_transport_controls_row", "relation": "conceptually_related_to", "confidence": "INFERRED", "confidence_score": 0.74, "source_file": "ui-specs.md", "source_location": "ui-specs.md:52", "weight": 0.74}, {"source": "ui_specs_waveform_area", "target": "ui_specs_transport_controls_row", "relation": "conceptually_related_to", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "ui-specs.md", "source_location": "ui-specs.md:153", "weight": 1.0}, {"source": "ui_specs_event_log_panel", "target": "ui_specs_diagnostics_panel", "relation": "semantically_similar_to", "confidence": "INFERRED", "confidence_score": 0.72, "source_file": "ui-specs.md", "source_location": "ui-specs.md:264", "weight": 0.72}], "hyperedges": [{"id": "application_layout_zones", "label": "Application Layout Zones", "nodes": ["ui_specs_top_bar", "ui_specs_waveform_area", "ui_specs_transport_controls_row", "ui_specs_three_column_diagnostics_area"], "relation": "form", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "ui-specs.md"}, {"id": "diagnostics_area_panels", "label": "Diagnostics Area Panels", "nodes": ["ui_specs_dmx_monitor_panel", "ui_specs_event_log_panel", "ui_specs_diagnostics_panel"], "relation": "form", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "ui-specs.md"}], "communities": {"0": {"label": "Project Frame", "nodes": ["readme_ai_light_show_v3", "ui_specs_light_show_player_frontend", "ui_specs_vite", "ui_specs_react", "ui_specs_typescript", "ui_specs_wavesurfer_js", "ui_specs_playback_state_model", "ui_specs_dark_technical_playback_console"]}, "1": {"label": "Layout Flow", "nodes": ["ui_specs_top_bar", "ui_specs_waveform_area", "ui_specs_transport_controls_row", "ui_specs_three_column_diagnostics_area"]}, "2": {"label": "Diagnostics Cluster", "nodes": ["ui_specs_dmx_monitor_panel", "ui_specs_event_log_panel", "ui_specs_diagnostics_panel"]}}, "analysis": {"gods": [{"id": "ui_specs_light_show_player_frontend", "label": "Light Show Player Frontend", "community": 0, "community_label": "Project Frame", "degree": 7, "source_file": "ui-specs.md"}, {"id": "ui_specs_three_column_diagnostics_area", "label": "Three-Column Diagnostics Area", "community": 1, "community_label": "Layout Flow", "degree": 6, "source_file": "ui-specs.md"}, {"id": "ui_specs_transport_controls_row", "label": "Transport Controls Row", "community": 1, "community_label": "Layout Flow", "degree": 5, "source_file": "ui-specs.md"}, {"id": "ui_specs_waveform_area", "label": "Waveform Area", "community": 1, "community_label": "Layout Flow", "degree": 5, "source_file": "ui-specs.md"}, {"id": "ui_specs_diagnostics_panel", "label": "Diagnostics Panel", "community": 2, "community_label": "Diagnostics Cluster", "degree": 4, "source_file": "ui-specs.md"}], "surprises": [{"source": "Light Show Player Frontend", "target": "Dark Technical Playback Console", "why": "The UI spec makes visual tone a first-class architectural concern, not just styling polish.", "confidence": "EXTRACTED"}, {"source": "Top Bar", "target": "Transport Controls Row", "why": "Selection and playback control are separated visually, but still operate as one control loop for show loading and execution.", "confidence": "INFERRED"}, {"source": "Event Log Panel", "target": "Diagnostics Panel", "why": "These panels monitor different signals yet converge on the same operator-telemetry role, making them strong candidates for shared component patterns.", "confidence": "INFERRED"}], "questions": ["How does the playback state model drive updates across the top bar, waveform, transport row, and diagnostics panels?", "Which parts of the UI spec most strongly enforce the dark technical playback console identity?", "What shared telemetry pattern links the event log panel and diagnostics panel?"]}};
-const details = document.getElementById('details');
-const connections = document.getElementById('connections');
-const nodeMap = Object.fromEntries(graph.nodes.map(n => [n.id, n]));
-function renderNode(nodeId) {
-  const node = nodeMap[nodeId];
-  const related = graph.edges.filter(e => e.source === nodeId || e.target === nodeId).map(e => {
-    const other = e.source === nodeId ? nodeMap[e.target].label : nodeMap[e.source].label;
-    return `<span class="badge">${e.relation} -> ${other}</span>`;
-  }).join(' ') || '<span class="badge">No direct edges</span>';
-  details.innerHTML = `
-    <div class='kv'><dt>Selected node</dt><dd>${node.label}</dd></div>
-    <div class='kv'><dt>Source</dt><dd>${node.source_location || node.source_file}</dd></div>
-    <div class='kv'><dt>Community</dt><dd>${node.community_label}</dd></div>
-    <div class='kv'><dt>Rationale</dt><dd>${node.rationale || 'None captured'}</dd></div>
-    <div class='kv'><dt>Connections</dt><dd>${related}</dd></div>
+const RAW_NODES = [{"id": "frontend_vite_config_ts", "label": "vite.config.ts", "color": {"background": "#EDC948", "border": "#EDC948", "highlight": {"background": "#ffffff", "border": "#EDC948"}}, "size": 10.0, "font": {"size": 0, "color": "#ffffff"}, "title": "vite.config.ts", "community": 5, "community_name": "Community 5", "source_file": "frontend/vite.config.ts", "file_type": "code", "degree": 0}, {"id": "frontend_eslint_config_js", "label": "eslint.config.js", "color": {"background": "#B07AA1", "border": "#B07AA1", "highlight": {"background": "#ffffff", "border": "#B07AA1"}}, "size": 10.0, "font": {"size": 0, "color": "#ffffff"}, "title": "eslint.config.js", "community": 6, "community_name": "Community 6", "source_file": "frontend/eslint.config.js", "file_type": "code", "degree": 0}, {"id": "frontend_src_app_tsx", "label": "App.tsx", "color": {"background": "#59A14F", "border": "#59A14F", "highlight": {"background": "#ffffff", "border": "#59A14F"}}, "size": 14.3, "font": {"size": 0, "color": "#ffffff"}, "title": "App.tsx", "community": 4, "community_name": "Community 4", "source_file": "frontend/src/App.tsx", "file_type": "code", "degree": 1}, {"id": "frontend_src_main_tsx", "label": "main.tsx", "color": {"background": "#59A14F", "border": "#59A14F", "highlight": {"background": "#ffffff", "border": "#59A14F"}}, "size": 14.3, "font": {"size": 0, "color": "#ffffff"}, "title": "main.tsx", "community": 4, "community_name": "Community 4", "source_file": "frontend/src/main.tsx", "file_type": "code", "degree": 1}, {"id": "backend_generator_py", "label": "generator.py", "color": {"background": "#76B7B2", "border": "#76B7B2", "highlight": {"background": "#ffffff", "border": "#76B7B2"}}, "size": 18.6, "font": {"size": 12, "color": "#ffffff"}, "title": "generator.py", "community": 3, "community_name": "Community 3", "source_file": "backend/generator.py", "file_type": "code", "degree": 2}, {"id": "backend_generator_generate_frame", "label": "generate_frame()", "color": {"background": "#76B7B2", "border": "#76B7B2", "highlight": {"background": "#ffffff", "border": "#76B7B2"}}, "size": 18.6, "font": {"size": 12, "color": "#ffffff"}, "title": "generate_frame()", "community": 3, "community_name": "Community 3", "source_file": "backend/generator.py", "file_type": "code", "degree": 2}, {"id": "backend_generator_main", "label": "main()", "color": {"background": "#76B7B2", "border": "#76B7B2", "highlight": {"background": "#ffffff", "border": "#76B7B2"}}, "size": 18.6, "font": {"size": 12, "color": "#ffffff"}, "title": "main()", "community": 3, "community_name": "Community 3", "source_file": "backend/generator.py", "file_type": "code", "degree": 2}, {"id": "readme_ai_light_show_v3", "label": "ai-light-show-v3", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 14.3, "font": {"size": 0, "color": "#ffffff"}, "title": "ai-light-show-v3", "community": 0, "community_name": "Community 0", "source_file": "README.md", "file_type": "document", "degree": 1}, {"id": "ui_specs_light_show_player_frontend", "label": "Light Show Player Frontend", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 40.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Light Show Player Frontend", "community": 0, "community_name": "Community 0", "source_file": "ui-specs.md", "file_type": "document", "degree": 7}, {"id": "ui_specs_vite", "label": "Vite", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 14.3, "font": {"size": 0, "color": "#ffffff"}, "title": "Vite", "community": 0, "community_name": "Community 0", "source_file": "ui-specs.md", "file_type": "document", "degree": 1}, {"id": "ui_specs_react", "label": "React", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 14.3, "font": {"size": 0, "color": "#ffffff"}, "title": "React", "community": 0, "community_name": "Community 0", "source_file": "ui-specs.md", "file_type": "document", "degree": 1}, {"id": "ui_specs_typescript", "label": "TypeScript", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 14.3, "font": {"size": 0, "color": "#ffffff"}, "title": "TypeScript", "community": 0, "community_name": "Community 0", "source_file": "ui-specs.md", "file_type": "document", "degree": 1}, {"id": "ui_specs_wavesurfer_js", "label": "WaveSurfer.js", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 18.6, "font": {"size": 12, "color": "#ffffff"}, "title": "WaveSurfer.js", "community": 1, "community_name": "Community 1", "source_file": "ui-specs.md", "file_type": "document", "degree": 2}, {"id": "ui_specs_top_bar", "label": "Top Bar", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 14.3, "font": {"size": 0, "color": "#ffffff"}, "title": "Top Bar", "community": 1, "community_name": "Community 1", "source_file": "ui-specs.md", "file_type": "document", "degree": 1}, {"id": "ui_specs_waveform_area", "label": "Waveform Area", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 18.6, "font": {"size": 12, "color": "#ffffff"}, "title": "Waveform Area", "community": 1, "community_name": "Community 1", "source_file": "ui-specs.md", "file_type": "document", "degree": 2}, {"id": "ui_specs_transport_controls_row", "label": "Transport Controls Row", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 18.6, "font": {"size": 12, "color": "#ffffff"}, "title": "Transport Controls Row", "community": 1, "community_name": "Community 1", "source_file": "ui-specs.md", "file_type": "document", "degree": 2}, {"id": "ui_specs_three_column_diagnostics_area", "label": "Three-Column Diagnostics Area", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 22.9, "font": {"size": 12, "color": "#ffffff"}, "title": "Three-Column Diagnostics Area", "community": 2, "community_name": "Community 2", "source_file": "ui-specs.md", "file_type": "document", "degree": 3}, {"id": "ui_specs_dmx_monitor_panel", "label": "DMX Monitor Panel", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 14.3, "font": {"size": 0, "color": "#ffffff"}, "title": "DMX Monitor Panel", "community": 2, "community_name": "Community 2", "source_file": "ui-specs.md", "file_type": "document", "degree": 1}, {"id": "ui_specs_event_log_panel", "label": "Event Log Panel", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 18.6, "font": {"size": 12, "color": "#ffffff"}, "title": "Event Log Panel", "community": 2, "community_name": "Community 2", "source_file": "ui-specs.md", "file_type": "document", "degree": 2}, {"id": "ui_specs_diagnostics_panel", "label": "Diagnostics Panel", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 18.6, "font": {"size": 12, "color": "#ffffff"}, "title": "Diagnostics Panel", "community": 2, "community_name": "Community 2", "source_file": "ui-specs.md", "file_type": "document", "degree": 2}, {"id": "ui_specs_playback_state_model", "label": "Playback State Model", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 14.3, "font": {"size": 0, "color": "#ffffff"}, "title": "Playback State Model", "community": 0, "community_name": "Community 0", "source_file": "ui-specs.md", "file_type": "document", "degree": 1}, {"id": "ui_specs_dark_technical_playback_console", "label": "Dark Technical Playback Console", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 14.3, "font": {"size": 0, "color": "#ffffff"}, "title": "Dark Technical Playback Console", "community": 0, "community_name": "Community 0", "source_file": "ui-specs.md", "file_type": "document", "degree": 1}];
+const RAW_EDGES = [{"from": "frontend_src_app_tsx", "to": "frontend_src_main_tsx", "label": "imports_from", "title": "imports_from [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "backend_generator_py", "to": "backend_generator_generate_frame", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "backend_generator_py", "to": "backend_generator_main", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "backend_generator_generate_frame", "to": "backend_generator_main", "label": "calls", "title": "calls [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "readme_ai_light_show_v3", "to": "ui_specs_light_show_player_frontend", "label": "references", "title": "references [AMBIGUOUS]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "AMBIGUOUS"}, {"from": "ui_specs_light_show_player_frontend", "to": "ui_specs_vite", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "ui_specs_light_show_player_frontend", "to": "ui_specs_react", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "ui_specs_light_show_player_frontend", "to": "ui_specs_typescript", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "ui_specs_light_show_player_frontend", "to": "ui_specs_wavesurfer_js", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "ui_specs_light_show_player_frontend", "to": "ui_specs_dark_technical_playback_console", "label": "rationale_for", "title": "rationale_for [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "ui_specs_light_show_player_frontend", "to": "ui_specs_playback_state_model", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "ui_specs_wavesurfer_js", "to": "ui_specs_waveform_area", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "ui_specs_top_bar", "to": "ui_specs_transport_controls_row", "label": "conceptually_related_to", "title": "conceptually_related_to [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "ui_specs_waveform_area", "to": "ui_specs_transport_controls_row", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "ui_specs_three_column_diagnostics_area", "to": "ui_specs_dmx_monitor_panel", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "ui_specs_three_column_diagnostics_area", "to": "ui_specs_event_log_panel", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "ui_specs_three_column_diagnostics_area", "to": "ui_specs_diagnostics_panel", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "ui_specs_event_log_panel", "to": "ui_specs_diagnostics_panel", "label": "semantically_similar_to", "title": "semantically_similar_to [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}];
+const LEGEND = [{"cid": 0, "color": "#4E79A7", "label": "Community 0", "count": 7}, {"cid": 1, "color": "#F28E2B", "label": "Community 1", "count": 4}, {"cid": 2, "color": "#E15759", "label": "Community 2", "count": 4}, {"cid": 3, "color": "#76B7B2", "label": "Community 3", "count": 3}, {"cid": 4, "color": "#59A14F", "label": "Community 4", "count": 2}, {"cid": 5, "color": "#EDC948", "label": "Community 5", "count": 1}, {"cid": 6, "color": "#B07AA1", "label": "Community 6", "count": 1}];
+
+// HTML-escape helper — prevents XSS when injecting graph data into innerHTML
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// Build vis datasets
+const nodesDS = new vis.DataSet(RAW_NODES.map(n => ({
+  id: n.id, label: n.label, color: n.color, size: n.size,
+  font: n.font, title: n.title,
+  _community: n.community, _community_name: n.community_name,
+  _source_file: n.source_file, _file_type: n.file_type, _degree: n.degree,
+})));
+
+const edgesDS = new vis.DataSet(RAW_EDGES.map((e, i) => ({
+  id: i, from: e.from, to: e.to,
+  label: '',
+  title: e.title,
+  dashes: e.dashes,
+  width: e.width,
+  color: e.color,
+  arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+})));
+
+const container = document.getElementById('graph');
+const network = new vis.Network(container, { nodes: nodesDS, edges: edgesDS }, {
+  physics: {
+    enabled: true,
+    solver: 'forceAtlas2Based',
+    forceAtlas2Based: {
+      gravitationalConstant: -60,
+      centralGravity: 0.005,
+      springLength: 120,
+      springConstant: 0.08,
+      damping: 0.4,
+      avoidOverlap: 0.8,
+    },
+    stabilization: { iterations: 200, fit: true },
+  },
+  interaction: {
+    hover: true,
+    tooltipDelay: 100,
+    hideEdgesOnDrag: true,
+    navigationButtons: false,
+    keyboard: false,
+  },
+  nodes: { shape: 'dot', borderWidth: 1.5 },
+  edges: { smooth: { type: 'continuous', roundness: 0.2 }, selectionWidth: 3 },
+});
+
+network.once('stabilizationIterationsDone', () => {
+  network.setOptions({ physics: { enabled: false } });
+});
+
+function showInfo(nodeId) {
+  const n = nodesDS.get(nodeId);
+  if (!n) return;
+  const neighborIds = network.getConnectedNodes(nodeId);
+  const neighborItems = neighborIds.map(nid => {
+    const nb = nodesDS.get(nid);
+    const color = nb ? nb.color.background : '#555';
+    return `<span class="neighbor-link" style="border-left-color:${esc(color)}" onclick="focusNode(${JSON.stringify(nid)})">${esc(nb ? nb.label : nid)}</span>`;
+  }).join('');
+  document.getElementById('info-content').innerHTML = `
+    <div class="field"><b>${esc(n.label)}</b></div>
+    <div class="field">Type: ${esc(n._file_type || 'unknown')}</div>
+    <div class="field">Community: ${esc(n._community_name)}</div>
+    <div class="field">Source: ${esc(n._source_file || '-')}</div>
+    <div class="field">Degree: ${n._degree}</div>
+    ${neighborIds.length ? `<div class="field" style="margin-top:8px;color:#aaa;font-size:11px">Neighbors (${neighborIds.length})</div><div id="neighbors-list">${neighborItems}</div>` : ''}
   `;
 }
-document.querySelectorAll('.node').forEach(el => {
-  el.addEventListener('click', () => renderNode(el.dataset.node));
-  el.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') renderNode(el.dataset.node); });
+
+function focusNode(nodeId) {
+  network.focus(nodeId, { scale: 1.4, animation: true });
+  network.selectNodes([nodeId]);
+  showInfo(nodeId);
+}
+
+// Track hovered node — hover detection is more reliable than click params
+let hoveredNodeId = null;
+network.on('hoverNode', params => {
+  hoveredNodeId = params.node;
+  container.style.cursor = 'pointer';
 });
-renderNode('ui_specs_light_show_player_frontend');
+network.on('blurNode', () => {
+  hoveredNodeId = null;
+  container.style.cursor = 'default';
+});
+container.addEventListener('click', () => {
+  if (hoveredNodeId !== null) {
+    showInfo(hoveredNodeId);
+    network.selectNodes([hoveredNodeId]);
+  }
+});
+network.on('click', params => {
+  if (params.nodes.length > 0) {
+    showInfo(params.nodes[0]);
+  } else if (hoveredNodeId === null) {
+    document.getElementById('info-content').innerHTML = '<span class="empty">Click a node to inspect it</span>';
+  }
+});
+
+const searchInput = document.getElementById('search');
+const searchResults = document.getElementById('search-results');
+searchInput.addEventListener('input', () => {
+  const q = searchInput.value.toLowerCase().trim();
+  searchResults.innerHTML = '';
+  if (!q) { searchResults.style.display = 'none'; return; }
+  const matches = RAW_NODES.filter(n => n.label.toLowerCase().includes(q)).slice(0, 20);
+  if (!matches.length) { searchResults.style.display = 'none'; return; }
+  searchResults.style.display = 'block';
+  matches.forEach(n => {
+    const el = document.createElement('div');
+    el.className = 'search-item';
+    el.textContent = n.label;
+    el.style.borderLeft = `3px solid ${n.color.background}`;
+    el.style.paddingLeft = '8px';
+    el.onclick = () => {
+      network.focus(n.id, { scale: 1.5, animation: true });
+      network.selectNodes([n.id]);
+      showInfo(n.id);
+      searchResults.style.display = 'none';
+      searchInput.value = '';
+    };
+    searchResults.appendChild(el);
+  });
+});
+document.addEventListener('click', e => {
+  if (!searchResults.contains(e.target) && e.target !== searchInput)
+    searchResults.style.display = 'none';
+});
+
+const hiddenCommunities = new Set();
+
+function toggleAllCommunities(hide) {
+  document.querySelectorAll('.legend-item').forEach(item => {
+    hide ? item.classList.add('dimmed') : item.classList.remove('dimmed');
+  });
+  LEGEND.forEach(c => {
+    if (hide) hiddenCommunities.add(c.cid); else hiddenCommunities.delete(c.cid);
+  });
+  const updates = RAW_NODES.map(n => ({ id: n.id, hidden: hide }));
+  nodesDS.update(updates);
+}
+
+const legendEl = document.getElementById('legend');
+LEGEND.forEach(c => {
+  const item = document.createElement('div');
+  item.className = 'legend-item';
+  item.innerHTML = `<div class="legend-dot" style="background:${c.color}"></div>
+    <span class="legend-label">${c.label}</span>
+    <span class="legend-count">${c.count}</span>`;
+  item.onclick = () => {
+    if (hiddenCommunities.has(c.cid)) {
+      hiddenCommunities.delete(c.cid);
+      item.classList.remove('dimmed');
+    } else {
+      hiddenCommunities.add(c.cid);
+      item.classList.add('dimmed');
+    }
+    const updates = RAW_NODES
+      .filter(n => n.community === c.cid)
+      .map(n => ({ id: n.id, hidden: hiddenCommunities.has(c.cid) }));
+    nodesDS.update(updates);
+  };
+  legendEl.appendChild(item);
+});
+</script>
+<script>
+// Render hyperedges as shaded regions
+const hyperedges = [{"id": "application_layout_zones", "label": "Application Layout Zones", "nodes": ["ui_specs_top_bar", "ui_specs_waveform_area", "ui_specs_transport_controls_row", "ui_specs_three_column_diagnostics_area"], "relation": "form", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "ui-specs.md"}, {"id": "diagnostics_area_panels", "label": "Diagnostics Area Panels", "nodes": ["ui_specs_dmx_monitor_panel", "ui_specs_event_log_panel", "ui_specs_diagnostics_panel"], "relation": "form", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "ui-specs.md"}];
+// afterDrawing passes ctx already transformed to network coordinate space.
+// Draw node positions raw — no manual pan/zoom/DPR math needed.
+network.on('afterDrawing', function(ctx) {
+    hyperedges.forEach(h => {
+        const positions = h.nodes
+            .map(nid => network.getPositions([nid])[nid])
+            .filter(p => p !== undefined);
+        if (positions.length < 2) return;
+        ctx.save();
+        ctx.globalAlpha = 0.12;
+        ctx.fillStyle = '#6366f1';
+        ctx.strokeStyle = '#6366f1';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        // Centroid and expanded hull in network coordinates
+        const cx = positions.reduce((s, p) => s + p.x, 0) / positions.length;
+        const cy = positions.reduce((s, p) => s + p.y, 0) / positions.length;
+        const expanded = positions.map(p => ({
+            x: cx + (p.x - cx) * 1.15,
+            y: cy + (p.y - cy) * 1.15
+        }));
+        ctx.moveTo(expanded[0].x, expanded[0].y);
+        expanded.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+        ctx.closePath();
+        ctx.fill();
+        ctx.globalAlpha = 0.4;
+        ctx.stroke();
+        // Label
+        ctx.globalAlpha = 0.8;
+        ctx.fillStyle = '#4f46e5';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(h.label, cx, cy - 5);
+        ctx.restore();
+    });
+});
 </script>
 </body>
 </html>
