@@ -1,0 +1,16 @@
+{
+  "path": ".",
+  "total_files": 2,
+  "total_words": 1790,
+  "files": {
+    "docs": [
+      "README.md",
+      "ui-specs.md"
+    ],
+    "code": [],
+    "papers": [],
+    "images": [],
+    "video": []
+  },
+  "skipped_sensitive": []
+}

@@ -1,0 +1,481 @@
+{
+  "meta": {
+    "source_path": "/home/darkangel/ai-light-show-v3",
+    "generated_at": "2026-05-03T02:24:28.534633+00:00",
+    "generator": "codex-local-graphify-fallback",
+    "warning": "Generated without the external graphify package because installation was blocked in this environment.",
+    "total_files": 2,
+    "total_words": 1790
+  },
+  "nodes": [
+    {
+      "id": "readme_ai_light_show_v3",
+      "label": "ai-light-show-v3",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "README.md:1",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "community": 0,
+      "community_label": "Project Frame"
+    },
+    {
+      "id": "ui_specs_light_show_player_frontend",
+      "label": "Light Show Player Frontend",
+      "file_type": "document",
+      "source_file": "ui-specs.md",
+      "source_location": "ui-specs.md:1",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Recreate the current Light Show Player interface with Vite and WaveSurfer.js while preserving the existing structure, look, and interaction model.",
+      "community": 0,
+      "community_label": "Project Frame"
+    },
+    {
+      "id": "ui_specs_vite",
+      "label": "Vite",
+      "file_type": "document",
+      "source_file": "ui-specs.md",
+      "source_location": "ui-specs.md:11",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "community": 0,
+      "community_label": "Project Frame"
+    },
+    {
+      "id": "ui_specs_react",
+      "label": "React",
+      "file_type": "document",
+      "source_file": "ui-specs.md",
+      "source_location": "ui-specs.md:12",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "community": 0,
+      "community_label": "Project Frame"
+    },
+    {
+      "id": "ui_specs_typescript",
+      "label": "TypeScript",
+      "file_type": "document",
+      "source_file": "ui-specs.md",
+      "source_location": "ui-specs.md:13",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "community": 0,
+      "community_label": "Project Frame"
+    },
+    {
+      "id": "ui_specs_wavesurfer_js",
+      "label": "WaveSurfer.js",
+      "file_type": "document",
+      "source_file": "ui-specs.md",
+      "source_location": "ui-specs.md:14",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "community": 0,
+      "community_label": "Project Frame"
+    },
+    {
+      "id": "ui_specs_top_bar",
+      "label": "Top Bar",
+      "file_type": "document",
+      "source_file": "ui-specs.md",
+      "source_location": "ui-specs.md:57",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "community": 1,
+      "community_label": "Layout Flow"
+    },
+    {
+      "id": "ui_specs_waveform_area",
+      "label": "Waveform Area",
+      "file_type": "document",
+      "source_file": "ui-specs.md",
+      "source_location": "ui-specs.md:122",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "community": 1,
+      "community_label": "Layout Flow"
+    },
+    {
+      "id": "ui_specs_transport_controls_row",
+      "label": "Transport Controls Row",
+      "file_type": "document",
+      "source_file": "ui-specs.md",
+      "source_location": "ui-specs.md:151",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "community": 1,
+      "community_label": "Layout Flow"
+    },
+    {
+      "id": "ui_specs_three_column_diagnostics_area",
+      "label": "Three-Column Diagnostics Area",
+      "file_type": "document",
+      "source_file": "ui-specs.md",
+      "source_location": "ui-specs.md:187",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "community": 1,
+      "community_label": "Layout Flow"
+    },
+    {
+      "id": "ui_specs_dmx_monitor_panel",
+      "label": "DMX Monitor Panel",
+      "file_type": "document",
+      "source_file": "ui-specs.md",
+      "source_location": "ui-specs.md:252",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "community": 2,
+      "community_label": "Diagnostics Cluster"
+    },
+    {
+      "id": "ui_specs_event_log_panel",
+      "label": "Event Log Panel",
+      "file_type": "document",
+      "source_file": "ui-specs.md",
+      "source_location": "ui-specs.md:264",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "community": 2,
+      "community_label": "Diagnostics Cluster"
+    },
+    {
+      "id": "ui_specs_diagnostics_panel",
+      "label": "Diagnostics Panel",
+      "file_type": "document",
+      "source_file": "ui-specs.md",
+      "source_location": "ui-specs.md:279",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "community": 2,
+      "community_label": "Diagnostics Cluster"
+    },
+    {
+      "id": "ui_specs_playback_state_model",
+      "label": "Playback State Model",
+      "file_type": "document",
+      "source_file": "ui-specs.md",
+      "source_location": "ui-specs.md:319",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "community": 0,
+      "community_label": "Project Frame"
+    },
+    {
+      "id": "ui_specs_dark_technical_playback_console",
+      "label": "Dark Technical Playback Console",
+      "file_type": "document",
+      "source_file": "ui-specs.md",
+      "source_location": "ui-specs.md:6",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "The interface should feel like a compact technical playback console optimized for monitoring synchronized media playback.",
+      "community": 0,
+      "community_label": "Project Frame"
+    }
+  ],
+  "edges": [
+    {
+      "source": "ui_specs_light_show_player_frontend",
+      "target": "readme_ai_light_show_v3",
+      "relation": "references",
+      "confidence": "AMBIGUOUS",
+      "confidence_score": 0.57,
+      "source_file": "ui-specs.md",
+      "source_location": "ui-specs.md:5",
+      "weight": 0.57
+    },
+    {
+      "source": "ui_specs_light_show_player_frontend",
+      "target": "ui_specs_vite",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "ui-specs.md",
+      "source_location": "ui-specs.md:11",
+      "weight": 1.0
+    },
+    {
+      "source": "ui_specs_light_show_player_frontend",
+      "target": "ui_specs_react",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "ui-specs.md",
+      "source_location": "ui-specs.md:12",
+      "weight": 1.0
+    },
+    {
+      "source": "ui_specs_light_show_player_frontend",
+      "target": "ui_specs_typescript",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "ui-specs.md",
+      "source_location": "ui-specs.md:13",
+      "weight": 1.0
+    },
+    {
+      "source": "ui_specs_light_show_player_frontend",
+      "target": "ui_specs_wavesurfer_js",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "ui-specs.md",
+      "source_location": "ui-specs.md:14",
+      "weight": 1.0
+    },
+    {
+      "source": "ui_specs_light_show_player_frontend",
+      "target": "ui_specs_dark_technical_playback_console",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "ui-specs.md",
+      "source_location": "ui-specs.md:5",
+      "weight": 1.0
+    },
+    {
+      "source": "ui_specs_waveform_area",
+      "target": "ui_specs_wavesurfer_js",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "ui-specs.md",
+      "source_location": "ui-specs.md:127",
+      "weight": 1.0
+    },
+    {
+      "source": "ui_specs_three_column_diagnostics_area",
+      "target": "ui_specs_dmx_monitor_panel",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "ui-specs.md",
+      "source_location": "ui-specs.md:192",
+      "weight": 1.0
+    },
+    {
+      "source": "ui_specs_three_column_diagnostics_area",
+      "target": "ui_specs_event_log_panel",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "ui-specs.md",
+      "source_location": "ui-specs.md:192",
+      "weight": 1.0
+    },
+    {
+      "source": "ui_specs_three_column_diagnostics_area",
+      "target": "ui_specs_diagnostics_panel",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "ui-specs.md",
+      "source_location": "ui-specs.md:192",
+      "weight": 1.0
+    },
+    {
+      "source": "ui_specs_light_show_player_frontend",
+      "target": "ui_specs_playback_state_model",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "ui-specs.md",
+      "source_location": "ui-specs.md:319",
+      "weight": 1.0
+    },
+    {
+      "source": "ui_specs_top_bar",
+      "target": "ui_specs_transport_controls_row",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.74,
+      "source_file": "ui-specs.md",
+      "source_location": "ui-specs.md:52",
+      "weight": 0.74
+    },
+    {
+      "source": "ui_specs_waveform_area",
+      "target": "ui_specs_transport_controls_row",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "ui-specs.md",
+      "source_location": "ui-specs.md:153",
+      "weight": 1.0
+    },
+    {
+      "source": "ui_specs_event_log_panel",
+      "target": "ui_specs_diagnostics_panel",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.72,
+      "source_file": "ui-specs.md",
+      "source_location": "ui-specs.md:264",
+      "weight": 0.72
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "application_layout_zones",
+      "label": "Application Layout Zones",
+      "nodes": [
+        "ui_specs_top_bar",
+        "ui_specs_waveform_area",
+        "ui_specs_transport_controls_row",
+        "ui_specs_three_column_diagnostics_area"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "ui-specs.md"
+    },
+    {
+      "id": "diagnostics_area_panels",
+      "label": "Diagnostics Area Panels",
+      "nodes": [
+        "ui_specs_dmx_monitor_panel",
+        "ui_specs_event_log_panel",
+        "ui_specs_diagnostics_panel"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "ui-specs.md"
+    }
+  ],
+  "communities": {
+    "0": {
+      "label": "Project Frame",
+      "nodes": [
+        "readme_ai_light_show_v3",
+        "ui_specs_light_show_player_frontend",
+        "ui_specs_vite",
+        "ui_specs_react",
+        "ui_specs_typescript",
+        "ui_specs_wavesurfer_js",
+        "ui_specs_playback_state_model",
+        "ui_specs_dark_technical_playback_console"
+      ]
+    },
+    "1": {
+      "label": "Layout Flow",
+      "nodes": [
+        "ui_specs_top_bar",
+        "ui_specs_waveform_area",
+        "ui_specs_transport_controls_row",
+        "ui_specs_three_column_diagnostics_area"
+      ]
+    },
+    "2": {
+      "label": "Diagnostics Cluster",
+      "nodes": [
+        "ui_specs_dmx_monitor_panel",
+        "ui_specs_event_log_panel",
+        "ui_specs_diagnostics_panel"
+      ]
+    }
+  },
+  "analysis": {
+    "gods": [
+      {
+        "id": "ui_specs_light_show_player_frontend",
+        "label": "Light Show Player Frontend",
+        "community": 0,
+        "community_label": "Project Frame",
+        "degree": 7,
+        "source_file": "ui-specs.md"
+      },
+      {
+        "id": "ui_specs_three_column_diagnostics_area",
+        "label": "Three-Column Diagnostics Area",
+        "community": 1,
+        "community_label": "Layout Flow",
+        "degree": 6,
+        "source_file": "ui-specs.md"
+      },
+      {
+        "id": "ui_specs_transport_controls_row",
+        "label": "Transport Controls Row",
+        "community": 1,
+        "community_label": "Layout Flow",
+        "degree": 5,
+        "source_file": "ui-specs.md"
+      },
+      {
+        "id": "ui_specs_waveform_area",
+        "label": "Waveform Area",
+        "community": 1,
+        "community_label": "Layout Flow",
+        "degree": 5,
+        "source_file": "ui-specs.md"
+      },
+      {
+        "id": "ui_specs_diagnostics_panel",
+        "label": "Diagnostics Panel",
+        "community": 2,
+        "community_label": "Diagnostics Cluster",
+        "degree": 4,
+        "source_file": "ui-specs.md"
+      }
+    ],
+    "surprises": [
+      {
+        "source": "Light Show Player Frontend",
+        "target": "Dark Technical Playback Console",
+        "why": "The UI spec makes visual tone a first-class architectural concern, not just styling polish.",
+        "confidence": "EXTRACTED"
+      },
+      {
+        "source": "Top Bar",
+        "target": "Transport Controls Row",
+        "why": "Selection and playback control are separated visually, but still operate as one control loop for show loading and execution.",
+        "confidence": "INFERRED"
+      },
+      {
+        "source": "Event Log Panel",
+        "target": "Diagnostics Panel",
+        "why": "These panels monitor different signals yet converge on the same operator-telemetry role, making them strong candidates for shared component patterns.",
+        "confidence": "INFERRED"
+      }
+    ],
+    "questions": [
+      "How does the playback state model drive updates across the top bar, waveform, transport row, and diagnostics panels?",
+      "Which parts of the UI spec most strongly enforce the dark technical playback console identity?",
+      "What shared telemetry pattern links the event log panel and diagnostics panel?"
+    ]
+  }
+}
