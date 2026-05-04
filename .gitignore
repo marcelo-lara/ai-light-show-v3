@@ -12,3 +12,6 @@ graphify-out/cost.json
 
 #########
 data/
+node_modules/
+dist/
+.DS_Store

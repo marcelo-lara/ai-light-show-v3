@@ -5,8 +5,16 @@ services:
     volumes:
       - ./backend:/app
       - ./data:/data
-    command: python generator.py
-    # In the future, this might run a persistent server, but for now it just runs the generator script
+    ports:
+      - "8000:8000"
+    command: python main.py
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
 
   frontend:
     build:
