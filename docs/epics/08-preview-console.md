@@ -16,6 +16,7 @@ The current frontend proves playback sync, but production work needs review ergo
 - Timeline view.
 - Section and beat markers on waveform.
 - Frame inspector with pixel coordinates and RGB values.
+- Fixture and POI reference overlay on the preview canvas.
 - A/B compare between two renders.
 - Fullscreen preview mode.
 - Missing artifact and incompatible schema states.
@@ -37,5 +38,5 @@ The current frontend proves playback sync, but production work needs review ergo
 
 ## First Iteration
 
-Add artifact metadata display, generation progress, schema error states, and a fullscreen preview toggle.
+Add artifact metadata display, generation progress, schema error states, a fixture and POI reference overlay, and a fullscreen preview toggle.
 

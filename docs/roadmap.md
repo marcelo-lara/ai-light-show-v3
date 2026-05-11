@@ -29,6 +29,8 @@ This roadmap is intentionally iterative. Each phase should leave the app more us
 - [Epic 03: Preset Schema](./epics/03-preset-schema.md)
 - [Epic 04: Layer Library](./epics/04-layer-library.md)
 - [Epic 05: Modulation System](./epics/05-modulation-system.md)
+- [Epic 11: Raindrops Shader](./epics/11-raindrops-shader.md)
+- [Epic 12: Spectroid Chase Shader](./epics/12-spectroid-chase-shader.md)
 - [Epic 06: Timeline Director](./epics/06-timeline-director.md)
 - [Epic 07: Transition System](./epics/07-transition-system.md)
 - [Epic 08: Preview Console](./epics/08-preview-console.md)
@@ -37,12 +39,15 @@ This roadmap is intentionally iterative. Each phase should leave the app more us
 
 ## Recommended Iteration Order
 
-1. Lock the render contract and metadata.
-2. Make the current two effects configurable through a preset schema.
-3. Add analysis IR fields that immediately improve those effects.
-4. Add 3-5 new low-res-native layers.
-5. Add timeline scenes and beat-synced transitions.
-6. Add frontend preview tools for comparison and approval.
-7. Add diagnostics and regression tests.
-8. Add physical fixture/export mapping.
+1. Lock the render contract and playback state contract.
+2. Expand analysis IR so layers can use musical timing and tonal signals.
+3. Define the preset schema and parameter model.
+4. Build the reusable layer library and core blend or transform behavior.
+5. Add the modulation system so presets can drive layers without custom wiring.
+6. Implement POI-native looks such as raindrop pulses and transit collisions.
+7. Implement note or chord-reactive chase looks from parcan anchors into moving-head line motion.
+8. Add timeline scenes and beat-synced transitions.
+9. Upgrade the frontend console for loading, rendering, overlays, inspection, and approval.
+10. Add diagnostics and regression tests.
+11. Add physical fixture mapping and export.
 

@@ -77,17 +77,24 @@ The page should remain on one screen at desktop sizes. Internal panels may scrol
 
 The top bar spans the full width and has two functional groups:
 
-- Left: song/show selection controls
+- Left: song selection and current canvas state
 - Right: live system status indicators
 
 The bar should be horizontally aligned, vertically centered, and separated from the rest of the page with a thin accent divider or equivalent visual boundary.
 
 ### Left Side: Selectors
 
-Provide two inline selectors:
+Provide one primary inline selector and one passive state display:
 
 - Song selector
-- Show selector
+- Current canvas or no-canvas indicator
+
+State ownership:
+
+- The backend owns the current song and current canvas or show.
+- The frontend should request the backend to load a different song instead of loading song media independently as the source of truth.
+- After the backend loads a song, the frontend should update from backend-provided current song and current canvas state.
+- If the loaded song has no canvas or show yet, the song should still load successfully and the UI should show a clear no-canvas state until the user renders one.
 
 Selector behavior and styling:
 
@@ -97,8 +104,14 @@ Selector behavior and styling:
 - Avoid underline-heavy default styles
 - Dropdown chevrons should match surrounding text color
 - Minimum width should be enough to display short names without crowding, approximately `120px`
-- Show selector should be disabled until a song is selected
-- If no shows are available, the selector should clearly indicate that state with muted text
+- The current canvas indicator should clearly show either the active canvas name or a muted `no canvas loaded` state
+
+Loading behavior:
+
+- Selecting a song requests a backend song-load action
+- The backend response becomes the source of truth for the loaded song state
+- The UI should not fail song loading just because no canvas exists yet
+- If no canvas exists, the visualizer area may remain empty or show a placeholder until `Render` is triggered
 
 ### Right Side: Status Strip
 
@@ -257,9 +270,18 @@ This panel allows real-time manipulation of the shader math and visual logic.
 
 Requirements:
 
-- Form elements (inputs, sliders, selects) should be dense and technical
-- Sectioned by variable type (e.g., Beat Detection, Wave variables, Shapes)
+- Use tabs at the top of the left panel
+- The first tab must be `Main`
+- The `Main` tab contains only a `show name` text input and a `Render` button
+- Each additional tab maps to one shader or one layer property group
+- Form elements inside each shader tab should be dense and technical
 - Follow the dark theme with the primary purple accent for active/focused elements
+
+Behavior:
+
+- A song can be loaded even if no canvas exists yet
+- The `Render` button creates or replaces the current canvas for the loaded song
+- Shader or layer tabs should remain available for editing render parameters before render
 
 ### Canvas Render / Visualizer Panel (Right)
 
@@ -271,6 +293,20 @@ Requirements:
 - Unused space around the canvas should remain black
 - The visualizer should dominate the right side of the UI
 - Performance-focused: avoid unnecessary DOM overlays on top of the canvas
+- Load fixture and POI reference data from `data/fixtures/fixtures.json` and `data/fixtures/pois.json`
+- Show fixtures and POIs as a reference overlay on top of the canvas
+- Treat the overlay as non-destructive reference data, not as rendered pixel content
+- Fixture markers should use their normalized canvas `location`
+- POI markers should use their normalized canvas `location`
+- The overlay should remain useful even when no rendered canvas is loaded yet
+
+Overlay behavior:
+
+- Fixtures and POIs are visual references for alignment and preview only
+- The overlay should not modify the cached frame data
+- Fixture markers should be distinguishable from POI markers
+- Labels may be compact or optional, but marker identity should be inspectable
+- The overlay may be toggled on or off later, but it should be enabled by default for the first iteration
 
 ## Responsive Behavior
 
@@ -290,7 +326,7 @@ The design should adapt cleanly to smaller screens while preserving the same vis
 
 ### Mobile
 
-- Stack selectors and status items vertically or in wrapped rows
+- Stack the song selector, canvas state, and status items vertically or in wrapped rows
 - Keep transport controls easy to tap
 - Move from two columns to a single stacked layout
 - Preserve dense dark styling rather than switching to a card-heavy mobile redesign
@@ -301,8 +337,10 @@ The UI should feel live and stateful.
 
 The following state changes must visibly affect the interface:
 
-- Song selection updates the waveform source
-- Show selection updates available playback pairing state
+- Song selection requests backend song loading and then updates the UI from backend state
+- A successful song load updates the waveform source and current canvas state
+- Show name editing affects the next render request, not song loading
+- Fixture and POI overlays remain aligned to the canvas regardless of the current frame
 - Connection status updates the server chip color
 - Playback state updates the state chip and the Play/Pause icon
 - Current playback time updates the transport clock
@@ -312,8 +350,11 @@ The following state changes must visibly affect the interface:
 
 The UI assumes access to a lightweight playback state model with fields equivalent to:
 
-- selected song
-- selected show
+- current song
+- current canvas or show
+- canvas missing state
+- fixture reference list
+- POI reference list
 - playback state
 - current time
 - duration
