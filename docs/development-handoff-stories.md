@@ -43,10 +43,10 @@ Use these as small implementation handoff units. Each story should fit one focus
 
 ### Frontend Track
 
-- [ ] 01.F1 Shared artifact type: define frontend types that match the backend render artifact contract.
-- [ ] 01.F2 Frontend compatibility state: reject incompatible artifacts with a clear UI error state.
-- [ ] 01.F3 Metadata display readiness: surface schema version, render id, preset id, and seed in a way the UI can consume.
-- [ ] 01.F4 Current state types: add frontend types for backend-owned `current_song`, `current_canvas`, and empty-canvas states.
+- [x] 01.F1 Shared artifact type: define frontend types that match the backend render artifact contract.
+- [x] 01.F2 Frontend compatibility state: reject incompatible artifacts with a clear UI error state.
+- [x] 01.F3 Metadata display readiness: surface schema version, render id, preset id, and seed in a way the UI can consume.
+- [x] 01.F4 Current state types: add frontend types for backend-owned `current_song`, `current_canvas`, and empty-canvas states.
 
 ### Validation Track
 
@@ -70,13 +70,13 @@ Use these as small implementation handoff units. Each story should fit one focus
 ### Frontend Track
 
 - [ ] 02.F1 Analysis type updates: add types for beat phase, bar phase, energy, and structure metadata.
-- [ ] 02.F2 Analysis debug readiness: expose analysis metadata in a shape the UI can inspect later.
+- [x] 02.F2 Analysis debug readiness: expose analysis metadata in a shape the UI can inspect later.
 
 ### Validation Track
 
-- [ ] 02.V1 Cache invalidation test: prove analyzer schema changes invalidate cached analysis.
-- [ ] 02.V2 Timestamp query test: prove beat phase, bar phase, and nearest-beat fields are available at render time.
-- [ ] 02.V3 Signal sanity test: verify smoothed envelopes and energy values stay normalized and bounded.
+- [x] 02.V1 Cache invalidation test: prove analyzer schema changes invalidate cached analysis.
+- [x] 02.V2 Timestamp query test: prove beat phase, bar phase, and nearest-beat fields are available at render time.
+- [x] 02.V3 Signal sanity test: verify smoothed envelopes and energy values stay normalized and bounded.
 
 ## Epic 03: Preset Schema
 
@@ -92,14 +92,14 @@ Use these as small implementation handoff units. Each story should fit one focus
 
 ### Frontend Track
 
-- [ ] 03.F1 Preset summary type: add frontend types for preset identity, labels, and tags.
-- [ ] 03.F2 Parameter schema type: add frontend types for typed preset parameters and UI groups.
-- [ ] 03.F3 Preset loading readiness: make the UI able to consume schema-defined presets later without hardcoded assumptions.
+- [x] 03.F1 Preset summary type: add frontend types for preset identity, labels, and tags.
+- [x] 03.F2 Parameter schema type: add frontend types for typed preset parameters and UI groups.
+- [x] 03.F3 Preset loading readiness: make the UI able to consume schema-defined presets later without hardcoded assumptions.
 
 ### Validation Track
 
-- [ ] 03.V1 Valid preset test: prove a valid preset loads and passes schema validation.
-- [ ] 03.V2 Invalid preset test: prove invalid presets fail with actionable errors.
+- [x] 03.V1 Valid preset test: prove a valid preset loads and passes schema validation.
+- [x] 03.V2 Invalid preset test: prove invalid presets fail with actionable errors.
 - [ ] 03.V3 Baseline parity test: prove `undersea_pulse_01` reproduces the current baseline look closely enough.
 
 ## Epic 04: Layer Library
@@ -126,7 +126,7 @@ Use these as small implementation handoff units. Each story should fit one focus
 
 ### Validation Track
 
-- [ ] 04.V1 Registry test: prove layers are registered and loadable by id.
+- [x] 04.V1 Registry test: prove layers are registered and loadable by id.
 - [ ] 04.V2 Determinism test: prove seeded layers render reproducibly.
 - [ ] 04.V3 Visual fixture coverage: add at least one fixture or snapshot test per layer.
 
@@ -149,7 +149,7 @@ Use these as small implementation handoff units. Each story should fit one focus
 
 ### Validation Track
 
-- [ ] 05.V1 Binding test: prove presets can bind modulators to layer parameters without layer-specific code.
+- [x] 05.V1 Binding test: prove presets can bind modulators to layer parameters without layer-specific code.
 - [ ] 05.V2 Determinism test: prove modulator outputs stay stable for the same inputs.
 - [ ] 05.V3 Mapping test: prove mapping operations apply in the declared order.
 
@@ -216,14 +216,14 @@ Use these as small implementation handoff units. Each story should fit one focus
 
 ### Frontend Track
 
-- [ ] 06.F1 Timeline types: add frontend types for scenes, ranges, and automation metadata.
+- [x] 06.F1 Timeline types: add frontend types for scenes, ranges, and automation metadata.
 - [ ] 06.F2 Timeline display readiness: make the UI able to consume timeline metadata later.
 
 ### Validation Track
 
-- [ ] 06.V1 Multi-scene render test: prove one song can render with multiple scenes.
+- [x] 06.V1 Multi-scene render test: prove one song can render with multiple scenes.
 - [ ] 06.V2 Alignment test: prove scene boundaries align to beats or phrases by default.
-- [ ] 06.V3 Override test: prove manual scene overrides persist over auto-generated defaults.
+- [x] 06.V3 Override test: prove manual scene overrides persist over auto-generated defaults.
 
 ## Epic 07: Transition System
 
@@ -239,12 +239,12 @@ Use these as small implementation handoff units. Each story should fit one focus
 
 ### Frontend Track
 
-- [ ] 07.F1 Transition types: add frontend types for transition metadata.
+- [x] 07.F1 Transition types: add frontend types for transition metadata.
 - [ ] 07.F2 Transition preview readiness: make the UI able to consume transition metadata later.
 
 ### Validation Track
 
-- [ ] 07.V1 Deterministic transition test: prove transition output is reproducible.
+- [x] 07.V1 Deterministic transition test: prove transition output is reproducible.
 - [ ] 07.V2 Duration test: prove transition durations can be expressed and applied consistently.
 - [ ] 07.V3 Alignment test: prove transitions honor beat, bar, phrase, or section alignment rules.
 
@@ -261,16 +261,16 @@ Use these as small implementation handoff units. Each story should fit one focus
 ### Frontend Track
 
 - [ ] 08.F1 Console network spec: update the frontend to target port `3400` and the backend API on port `3401`.
-- [ ] 08.F4 Server-owned song flow: request song changes from the backend instead of loading song files directly in the frontend.
-- [ ] 08.F5 Song-loaded UI update: update the frontend when the backend reports a new current song and current canvas.
-- [ ] 08.F6 Empty canvas state UI: allow a song to be loaded and preview-ready even when no show exists yet.
+- [x] 08.F4 Server-owned song flow: request song changes from the backend instead of loading song files directly in the frontend.
+- [x] 08.F5 Song-loaded UI update: update the frontend when the backend reports a new current song and current canvas.
+- [x] 08.F6 Empty canvas state UI: allow a song to be loaded and preview-ready even when no show exists yet.
 - [x] 08.F7 Main tab: add a `Main` tab in the left column with only `show name` input and a `Render` button.
 - [x] 08.F8 Shader tabs: add one left-column tab per shader or layer property group.
 - [ ] 08.F10 Fixture overlay load: load fixture references from `data/fixtures/fixtures.json`.
 - [ ] 08.F11 POI overlay load: load POI references from `data/fixtures/pois.json`.
 - [ ] 08.F12 Canvas reference overlay: draw fixtures and POIs as a visual overlay on the canvas.
 - [ ] 08.F13 Overlay marker styling: make fixture markers visually distinct from POI markers.
-- [ ] 08.F2 Artifact metadata panel: show render metadata, schema version, preset id, seed, and compatibility state.
+- [x] 08.F2 Artifact metadata panel: show render metadata, schema version, preset id, seed, and compatibility state.
 - [ ] 08.F3 Generation workflow UI: show render job status, progress, and failure details.
 - [x] 08.F9 Preset-driven controls: build shader or layer controls from schema-defined groups instead of hardcoded controls.
 - [ ] 08.F14 Timeline view: add timeline display for scene and transition metadata.
