@@ -4,6 +4,7 @@ try:
 except Exception:
     import numpy as np
     print("Renderer: CuPy not found, falling back to NumPy")
+import numpy as cpu_np
 import json
 import os
 import uuid
@@ -77,6 +78,11 @@ class FrameRenderer:
                     with open(alt_path, 'r') as f:
                         self.presets[scene.preset_id] = PresetSchema(**json.load(f))
 
+    def _to_host_array(self, array):
+        if hasattr(np, "asnumpy"):
+            return np.asnumpy(array)
+        return cpu_np.asarray(array)
+
     def _setup_scene(self, scene):
         preset = self.presets[scene.preset_id]
         
@@ -111,7 +117,7 @@ class FrameRenderer:
                     return p.default
         return param_val
 
-    def generate_frames(self):
+    def generate_frames(self, output_format: str = "legacy"):
         duration = self.analysis_data['duration']
         total_frames = int(duration * self.fps)
         
@@ -119,7 +125,7 @@ class FrameRenderer:
         np.random.seed(self.seed)
         random.seed(self.seed)
         
-        frames = []
+        frames = [] if output_format == "legacy" else bytearray()
         # diagnostics collector
         diagnostics = Diagnostics(self.coords.shape[0])
         start_time = time.time()
@@ -199,8 +205,6 @@ class FrameRenderer:
 
             # Render current scene
             final_pixels = render_scene_state(active_scene, preset, active_layers, active_modulators)
-            # update diagnostics with raw (N,3) uint8 pixels
-            diagnostics.update(final_pixels)
             
             # Apply transition if active
             if active_scene.transition and prev_scene is not None:
@@ -220,15 +224,21 @@ class FrameRenderer:
                         flash_val = (1.0 - progress) * 255.0 * audio_features.get('global_energy', 1.0)
                         final_pixels = np.clip(final_pixels + flash_val, 0, 255).astype(np.uint8)
 
-            r = final_pixels[:, 0].astype(np.uint32)
-            g = final_pixels[:, 1].astype(np.uint32)
-            b = final_pixels[:, 2].astype(np.uint32)
-            packed_pixels = (r << 16) | (g << 8) | b
-            
-            frames.append({
-                "timestamp": time_sec,
-                "pixels": packed_pixels.tolist()
-            })
+            host_pixels = self._to_host_array(final_pixels).astype(cpu_np.uint8, copy=False)
+            diagnostics.update(host_pixels)
+
+            if output_format == "legacy":
+                r = host_pixels[:, 0].astype(cpu_np.uint32)
+                g = host_pixels[:, 1].astype(cpu_np.uint32)
+                b = host_pixels[:, 2].astype(cpu_np.uint32)
+                packed_pixels = (r << 16) | (g << 8) | b
+
+                frames.append({
+                    "timestamp": time_sec,
+                    "pixels": packed_pixels.tolist()
+                })
+            else:
+                frames.extend(host_pixels.reshape(-1).tobytes())
             
             if frame_idx % 500 == 0 and frame_idx > 0:
                 print(f"Processed {frame_idx}/{total_frames} frames...")
@@ -241,15 +251,16 @@ class FrameRenderer:
     def export(self):
         hash_input = f"{self.song_id}_{self.seed}_{json.dumps(self.global_params, sort_keys=True)}_{self.fps}_timeline"
         render_id = hashlib.sha256(hash_input.encode()).hexdigest()[:16]
-            
-        output_path = os.path.join(self.output_dir, f"{self.song_id}.{render_id}.json")
-        
-        frames = self.generate_frames()
-        
-        print(f"Saving show data to {output_path}...")
+        base_name = f"{self.song_id}.{render_id}"
+        output_path = os.path.join(self.output_dir, f"{base_name}.json")
+        frame_path = os.path.join(self.output_dir, f"{base_name}.bin")
+
+        frame_bytes = self.generate_frames(output_format="rgb24")
+
+        print(f"Saving show metadata to {output_path}...")
         
         metadata = {
-            "schema_version": "v1",
+            "schema_version": "v2",
             "render_id": render_id,
             "preset_id": self.preset_id,
             "preset_version": self.preset_version,
@@ -261,17 +272,20 @@ class FrameRenderer:
             "analysis_structure": self.analysis_data.get('structure', {}),
             "fps": self.fps,
             "duration": self.analysis_data['duration'],
-            "frame_count": len(frames),
+            "frame_count": int(self.analysis_data['duration'] * self.fps),
             "resolution": {"width": self.width, "height": self.height},
+            "frame_encoding": "rgb24",
+            "frame_data_path": os.path.basename(frame_path),
+            "bytes_per_frame": self.width * self.height * 3,
             "timeline": self.timeline.dict(),
             "render_diagnostics": getattr(self, 'render_diagnostics', {})
         }
-        
+
         with open(output_path, 'w') as f:
-            json.dump({
-                "metadata": metadata,
-                "frames": frames
-            }, f)
-            
+            json.dump({"metadata": metadata}, f)
+
+        with open(frame_path, 'wb') as f:
+            f.write(frame_bytes)
+
         print("Export complete!")
         return output_path

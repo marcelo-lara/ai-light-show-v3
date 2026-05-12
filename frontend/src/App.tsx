@@ -86,11 +86,14 @@ interface ShowMetadata {
   duration: number;
   frame_count: number;
   resolution: { width: number; height: number };
+  frame_encoding?: string;
+  frame_data_path?: string;
+  bytes_per_frame?: number;
 }
 
 interface ShowData {
   metadata: ShowMetadata;
-  frames: FrameData[];
+  frames?: FrameData[];
 }
 
 interface ServerStatePayload {
@@ -118,15 +121,13 @@ function App() {
   const waveformRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wavesurfer = useRef<WaveSurfer | null>(null);
-  const framesData = useRef<FrameData[]>([]);
+  const legacyFramesData = useRef<FrameData[]>([]);
+  const binaryFramesData = useRef<Uint8Array | null>(null);
   const metadataRef = useRef<ShowMetadata | null>(null);
   const imageDataRef = useRef<ImageData | null>(null);
   const animationRef = useRef<number>(0);
 
-  const [fixtures, setFixtures] = useState<any[]>([]);
-  const [pois, setPois] = useState<any[]>([]);
   const overlaysRef = useRef({ fixtures: [] as any[], pois: [] as any[] });
-  const lastCanvasSize = useRef({ w: 0, h: 0 });
 
   const loadOverlays = async () => {
     try {
@@ -136,12 +137,10 @@ function App() {
       ]);
       if (fixturesRes.ok) {
         const f = await fixturesRes.json();
-        setFixtures(f);
         overlaysRef.current.fixtures = f;
       }
       if (poisRes.ok) {
         const p = await poisRes.json();
-        setPois(p);
         overlaysRef.current.pois = p;
       }
     } catch (e) {
@@ -189,7 +188,8 @@ function App() {
 
   const clearFrames = () => {
     metadataRef.current = null;
-    framesData.current = [];
+    legacyFramesData.current = [];
+    binaryFramesData.current = null;
   };
 
   const fetchServerState = async () => {
@@ -214,14 +214,39 @@ function App() {
       }
 
       const data: ShowData = await response.json();
-      if (data.metadata.schema_version !== 'v1') {
+      if (data.metadata.schema_version === 'v1') {
+        metadataRef.current = data.metadata;
+        legacyFramesData.current = data.frames ?? [];
+        binaryFramesData.current = null;
+        setCurrentCanvas(canvasToLoad);
+        return;
+      }
+
+      if (data.metadata.schema_version !== 'v2' || data.metadata.frame_encoding !== 'rgb24' || !data.metadata.frame_data_path) {
+        setServerState('INCOMPATIBLE_SCHEMA');
+        clearFrames();
+        return;
+      }
+
+      const binaryResponse = await fetch(`/data/canvas/${encodeURIComponent(data.metadata.frame_data_path)}`);
+      if (!binaryResponse.ok) {
+        clearFrames();
+        return;
+      }
+
+      const frameBytes = new Uint8Array(await binaryResponse.arrayBuffer());
+      const bytesPerFrame = data.metadata.bytes_per_frame
+        ?? data.metadata.resolution.width * data.metadata.resolution.height * 3;
+      const expectedBytes = bytesPerFrame * data.metadata.frame_count;
+      if (frameBytes.byteLength !== expectedBytes) {
         setServerState('INCOMPATIBLE_SCHEMA');
         clearFrames();
         return;
       }
 
       metadataRef.current = data.metadata;
-      framesData.current = data.frames;
+      legacyFramesData.current = [];
+      binaryFramesData.current = frameBytes;
       setCurrentCanvas(canvasToLoad);
     } catch (error) {
       console.error(error);
@@ -415,24 +440,47 @@ function App() {
   useEffect(() => {
     const renderLoop = () => {
       const realTime = wavesurfer.current?.getCurrentTime() || currentTime;
+      const metadata = metadataRef.current;
+      const hasLegacyFrames = legacyFramesData.current.length > 0;
+      const hasBinaryFrames = binaryFramesData.current !== null;
 
-      if (canvasRef.current && framesData.current.length > 0 && metadataRef.current) {
+      if (canvasRef.current && metadata && (hasLegacyFrames || hasBinaryFrames)) {
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
         if (ctx) {
-          const fps = metadataRef.current.fps || 50;
+          const fps = metadata.fps || 50;
           const frameIndex = Math.floor(realTime * fps);
-          const frame = framesData.current[Math.min(frameIndex, framesData.current.length - 1)];
+          const clampedFrameIndex = Math.min(frameIndex, Math.max(0, metadata.frame_count - 1));
+          const width = metadata.resolution.width;
+          const height = metadata.resolution.height;
+          const pixelCount = width * height;
+          const bytesPerFrame = metadata.bytes_per_frame ?? pixelCount * 3;
 
-          if (frame?.pixels) {
-            const width = metadataRef.current.resolution.width;
-            const height = metadataRef.current.resolution.height;
-            if (!imageDataRef.current || imageDataRef.current.width !== width || imageDataRef.current.height !== height) {
-              imageDataRef.current = ctx.createImageData(width, height);
+          if (!imageDataRef.current || imageDataRef.current.width !== width || imageDataRef.current.height !== height) {
+            imageDataRef.current = ctx.createImageData(width, height);
+          }
+
+          const imageData = imageDataRef.current;
+          const { data } = imageData;
+
+          if (hasBinaryFrames && binaryFramesData.current) {
+            const frameStart = clampedFrameIndex * bytesPerFrame;
+            const frameBytes = binaryFramesData.current.subarray(frameStart, frameStart + bytesPerFrame);
+            for (let index = 0; index < pixelCount; index += 1) {
+              const sourceIndex = index * 3;
+              const pixelIndex = index << 2;
+              data[pixelIndex] = frameBytes[sourceIndex];
+              data[pixelIndex + 1] = frameBytes[sourceIndex + 1];
+              data[pixelIndex + 2] = frameBytes[sourceIndex + 2];
+              data[pixelIndex + 3] = 255;
+            }
+          } else {
+            const frame = legacyFramesData.current[Math.min(clampedFrameIndex, legacyFramesData.current.length - 1)];
+            if (!frame?.pixels) {
+              animationRef.current = requestAnimationFrame(renderLoop);
+              return;
             }
 
-            const imageData = imageDataRef.current;
-            const { data } = imageData;
             for (let index = 0; index < frame.pixels.length; index += 1) {
               const value = frame.pixels[index];
               const pixelIndex = index << 2;
@@ -441,72 +489,73 @@ function App() {
               data[pixelIndex + 2] = value & 0xff;
               data[pixelIndex + 3] = 255;
             }
-            // scale image to displayed canvas size using an offscreen canvas
-            const metaW = width;
-            const metaH = height;
-            const clientW = canvas.clientWidth || metaW;
-            const clientH = canvas.clientHeight || metaH;
-            const dpr = window.devicePixelRatio || 1;
-            const desiredW = Math.max(1, Math.round(clientW * dpr));
-            const desiredH = Math.max(1, Math.round(clientH * dpr));
-            if (canvas.width !== desiredW || canvas.height !== desiredH) {
-              canvas.width = desiredW;
-              canvas.height = desiredH;
-            }
-            const off = document.createElement('canvas');
-            off.width = metaW;
-            off.height = metaH;
-            const offCtx = off.getContext('2d');
-            if (offCtx) {
-              offCtx.putImageData(imageData, 0, 0);
-              ctx.clearRect(0, 0, canvas.width, canvas.height);
-              ctx.drawImage(off, 0, 0, canvas.width, canvas.height);
-            }
-            // draw overlays
-            const scaleX = canvas.width / metaW;
-            const scaleY = canvas.height / metaH;
-            const drawMarker = (x: number, y: number, kind: 'fixture' | 'poi') => {
-              const px = x * metaW * scaleX;
-              const py = y * metaH * scaleY;
-              const radius = Math.max(3, Math.round(6 * (canvas.width / metaW)));
-              ctx.beginPath();
-              if (kind === 'fixture') {
-                ctx.fillStyle = 'rgba(0,128,255,0.9)';
-                ctx.strokeStyle = '#003366';
-                ctx.lineWidth = 2;
-                ctx.arc(px, py, radius, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.stroke();
-              } else {
-                ctx.fillStyle = 'rgba(255,64,64,0.95)';
-                ctx.strokeStyle = '#660000';
-                ctx.lineWidth = 2;
-                ctx.fillRect(px - radius, py - radius, radius * 2, radius * 2);
-                ctx.strokeRect(px - radius, py - radius, radius * 2, radius * 2);
-              }
-            };
-            // overlaysRef holds originals; entries may already be normalized [0-1] or pixel coords; assume normalized if <=1
-            overlaysRef.current.fixtures?.forEach((f: any) => {
-              const nx = f.x !== undefined ? f.x : f[0];
-              const ny = f.y !== undefined ? f.y : f[1];
-              const xNorm = nx <= 1 ? nx : nx / metaW;
-              const yNorm = ny <= 1 ? ny : ny / metaH;
-              drawMarker(xNorm, yNorm, 'fixture');
-            });
-            overlaysRef.current.pois?.forEach((p: any) => {
-              const nx = p.x !== undefined ? p.x : p[0];
-              const ny = p.y !== undefined ? p.y : p[1];
-              const xNorm = nx <= 1 ? nx : nx / metaW;
-              const yNorm = ny <= 1 ? ny : ny / metaH;
-              drawMarker(xNorm, yNorm, 'poi');
-            });
           }
 
-          if (frame) {
-            const driftMs = Math.round((realTime - frame.timestamp) * 1000);
-            if (Math.abs(drift - driftMs) > 10) {
-              setDrift(driftMs);
+          const metaW = width;
+          const metaH = height;
+          const clientW = canvas.clientWidth || metaW;
+          const clientH = canvas.clientHeight || metaH;
+          const dpr = window.devicePixelRatio || 1;
+          const desiredW = Math.max(1, Math.round(clientW * dpr));
+          const desiredH = Math.max(1, Math.round(clientH * dpr));
+          if (canvas.width !== desiredW || canvas.height !== desiredH) {
+            canvas.width = desiredW;
+            canvas.height = desiredH;
+          }
+          const off = document.createElement('canvas');
+          off.width = metaW;
+          off.height = metaH;
+          const offCtx = off.getContext('2d');
+          if (offCtx) {
+            offCtx.putImageData(imageData, 0, 0);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(off, 0, 0, canvas.width, canvas.height);
+          }
+          // draw overlays
+          const scaleX = canvas.width / metaW;
+          const scaleY = canvas.height / metaH;
+          const drawMarker = (x: number, y: number, kind: 'fixture' | 'poi') => {
+            const px = x * metaW * scaleX;
+            const py = y * metaH * scaleY;
+            const radius = Math.max(3, Math.round(6 * (canvas.width / metaW)));
+            ctx.beginPath();
+            if (kind === 'fixture') {
+              ctx.fillStyle = 'rgba(0,128,255,0.9)';
+              ctx.strokeStyle = '#003366';
+              ctx.lineWidth = 2;
+              ctx.arc(px, py, radius, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.stroke();
+            } else {
+              ctx.fillStyle = 'rgba(255,64,64,0.95)';
+              ctx.strokeStyle = '#660000';
+              ctx.lineWidth = 2;
+              ctx.fillRect(px - radius, py - radius, radius * 2, radius * 2);
+              ctx.strokeRect(px - radius, py - radius, radius * 2, radius * 2);
             }
+          };
+          // overlaysRef holds originals; entries may already be normalized [0-1] or pixel coords; assume normalized if <=1
+          overlaysRef.current.fixtures?.forEach((f: any) => {
+            const nx = f.x !== undefined ? f.x : f[0];
+            const ny = f.y !== undefined ? f.y : f[1];
+            const xNorm = nx <= 1 ? nx : nx / metaW;
+            const yNorm = ny <= 1 ? ny : ny / metaH;
+            drawMarker(xNorm, yNorm, 'fixture');
+          });
+          overlaysRef.current.pois?.forEach((p: any) => {
+            const nx = p.x !== undefined ? p.x : p[0];
+            const ny = p.y !== undefined ? p.y : p[1];
+            const xNorm = nx <= 1 ? nx : nx / metaW;
+            const yNorm = ny <= 1 ? ny : ny / metaH;
+            drawMarker(xNorm, yNorm, 'poi');
+          });
+
+          const frameTimestamp = hasBinaryFrames
+            ? clampedFrameIndex / fps
+            : legacyFramesData.current[Math.min(clampedFrameIndex, legacyFramesData.current.length - 1)]?.timestamp ?? (clampedFrameIndex / fps);
+          const driftMs = Math.round((realTime - frameTimestamp) * 1000);
+          if (Math.abs(drift - driftMs) > 10) {
+            setDrift(driftMs);
           }
         }
       }

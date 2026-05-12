@@ -40,6 +40,7 @@ Use these as small implementation handoff units. Each story should fit one focus
 - [x] 01.B4 Backend compatibility checks: reject missing required fields and unsupported schema versions.
 - [x] 01.B5 Current song state: add backend-owned `current_song` and `current_canvas` state to the playback contract.
 - [x] 01.B6 Empty canvas state: define the contract for a loaded song with no current canvas yet.
+- [ ] 01.B7 Chunked binary frames: split v2 frame payloads into short binary chunks instead of one monolithic `.bin` file to reduce memory pressure and enable progressive loading later.
 
 ### Frontend Track
 
@@ -54,6 +55,7 @@ Use these as small implementation handoff units. Each story should fit one focus
 - [x] 01.V2 Stable render id test: prove the same inputs produce the same `render_id`.
 - [ ] 01.V3 Golden sample fixture: add one short canonical render artifact for regression checks.
 - [x] 01.V4 Empty canvas contract test: prove a song can load without an existing canvas or show.
+- [ ] 01.V5 v1/v2 parity test: add a regression test that loads a short fixture as both legacy JSON frames and v2 binary frames and proves the decoded pixels match exactly.
 
 ## Epic 02: Analysis IR
 
@@ -257,6 +259,10 @@ Use these as small implementation handoff units. Each story should fit one focus
 - [x] 08.B5 Render action contract: make `Render` create or replace the current canvas for the already loaded song.
 - [x] 08.B2 Metadata payload support: expose artifact metadata needed by the console without UI-only assumptions.
 - [x] 08.B1 Generation status payload: expose render job status, progress, and failure details through the API.
+- [ ] 08.B6 Analysis phase progress: expose analysis-stage progress and status text before frame rendering begins.
+- [ ] 08.B7 Render progress cadence: publish render progress with current and total frame counts at least every `200` frames.
+- [ ] 08.B8 Canvas naming contract: accept a user-provided canvas name and persist exports as `{song_name}.{canvas_name}.json`.
+- [ ] 08.B9 Progress phase payload wiring: extend job status so the API reports analysis vs render phase and enough numeric progress for the frontend progress bar to reflect the active phase.
 
 ### Frontend Track
 
@@ -278,6 +284,11 @@ Use these as small implementation handoff units. Each story should fit one focus
 - [ ] 08.F16 Fullscreen preview: add fullscreen preview while preserving `100x50` pixel character.
 - [ ] 08.F17 A/B compare: add compare mode between two renders.
 - [ ] 08.F18 Approval workflow: add render approval status in the UI.
+- [ ] 08.F19 Full-width canvas fit: scale the preview canvas to the full available content width while preserving the render aspect ratio.
+- [ ] 08.F20 Generating progress bar: show render progress as a progress bar behind the `Generating...` label instead of text-only status.
+- [ ] 08.F21 Canvas name input: add a textbox for the canvas name used when `Render` creates `{song_name}.{canvas_name}.json`.
+- [ ] 08.F22 Header canvas-only title: show only the current canvas name in the header and hide the redundant song-name text there.
+- [ ] 08.F23 Phase-aware progress UI: drive the `Generating...` progress bar from the backend's analysis/render phase payload instead of a generic polling state.
 
 ### Validation Track
 
@@ -289,6 +300,10 @@ Use these as small implementation handoff units. Each story should fit one focus
 - [ ] 08.V6 Overlay load test: prove fixtures and POIs load from their JSON files and render as overlay references.
 - [ ] 08.V7 Overlay alignment test: prove fixture and POI markers stay aligned to canvas coordinates.
 - [ ] 08.V8 Review workflow test: prove a user can load a song, render a show, inspect it, and approve it from the UI.
+- [ ] 08.V9 Full-width preview test: prove the canvas expands to the available width without distorting the render aspect ratio.
+- [ ] 08.V10 Canvas name render test: prove the entered canvas name is sent to the backend and the resulting canvas file uses `{song_name}.{canvas_name}.json`.
+- [ ] 08.V11 Progress phase test: prove the UI distinguishes analysis progress from render progress and updates render progress every `200` frames.
+- [ ] 08.V12 Chunk compatibility flow test: prove the preview can still load and play a chunked v2 canvas artifact without changing current-canvas selection semantics.
 
 ## Epic 09: Render Diagnostics
 

@@ -40,3 +40,8 @@ The current frontend proves playback sync, but production work needs review ergo
 
 Add artifact metadata display, generation progress, schema error states, a fixture and POI reference overlay, and a fullscreen preview toggle.
 
+## Next Steps
+
+- Wire the generation-status API to report analysis and render as distinct phases with numeric progress so the console can show a real phase-aware progress bar instead of a generic generating state.
+- Keep preview compatibility when render artifacts move from one monolithic binary payload to chunked binary frame files.
+

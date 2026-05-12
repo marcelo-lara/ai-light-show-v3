@@ -19,6 +19,7 @@ export default defineConfig({
               if (fs.existsSync(fileToServe)) {
                 res.setHeader('Access-Control-Allow-Origin', '*');
                 if (fileToServe.endsWith('.json')) res.setHeader('Content-Type', 'application/json');
+                if (fileToServe.endsWith('.bin')) res.setHeader('Content-Type', 'application/octet-stream');
                 if (fileToServe.endsWith('.mp3')) res.setHeader('Content-Type', 'audio/mpeg');
                 fs.createReadStream(fileToServe).pipe(res);
               } else {
