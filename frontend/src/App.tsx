@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import WaveSurfer from 'wavesurfer.js';
 import { Pause, Play, Square, Upload } from 'lucide-react';
+import Diagnostics from './Diagnostics';
 
 interface FrameData {
   timestamp: number;
@@ -630,6 +631,8 @@ function App() {
                 <span>Phrase Length: {metadataRef.current.analysis_structure?.phrases_interval?.toFixed(2)}s</span>
               </div>
             )}
+
+            <Diagnostics metadata={metadataRef.current} />
           </div>
         )}
       </div>

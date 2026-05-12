@@ -29,6 +29,7 @@
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.58.2",
     "vite": "^8.0.10",
-    "vitest": "^1.0.0"
+    "vitest": "^1.0.0",
+    "@testing-library/react": "^14.0.0"
   }
 }
