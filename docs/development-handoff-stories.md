@@ -34,11 +34,11 @@ Use these as small implementation handoff units. Each story should fit one focus
 
 ### Backend Track
 
-- [ ] 01.B1 Artifact schema v1: add `schema_version`, `render_id`, `preset_id`, `preset_version`, `seed`, `params`, `song_id`, `analysis_id`, `fps`, `duration`, and `frame_count` to the render artifact.
+- [x] 01.B1 Artifact schema v1: add `schema_version`, `render_id`, `preset_id`, `preset_version`, `seed`, `params`, `song_id`, `analysis_id`, `fps`, `duration`, and `frame_count` to the render artifact.
 - [ ] 01.B2 Render id rules: generate a stable `render_id` from reproducible inputs instead of a random export id.
 - [ ] 01.B3 Seed rules: make seed handling explicit and required in the render contract.
 - [ ] 01.B4 Backend compatibility checks: reject missing required fields and unsupported schema versions.
-- [ ] 01.B5 Current song state: add backend-owned `current_song` and `current_canvas` state to the playback contract.
+- [x] 01.B5 Current song state: add backend-owned `current_song` and `current_canvas` state to the playback contract.
 - [ ] 01.B6 Empty canvas state: define the contract for a loaded song with no current canvas yet.
 
 ### Frontend Track
@@ -252,7 +252,7 @@ Use these as small implementation handoff units. Each story should fit one focus
 
 ### Backend Track
 
-- [ ] 08.B3 Song load endpoint: add one backend action that sets the current song and returns the updated current song plus current canvas state.
+- [x] 08.B3 Song load endpoint: add one backend action that sets the current song and returns the updated current song plus current canvas state.
 - [ ] 08.B4 Missing canvas on load: make song-load succeed even when no show exists for that song.
 - [ ] 08.B5 Render action contract: make `Render` create or replace the current canvas for the already loaded song.
 - [ ] 08.B2 Metadata payload support: expose artifact metadata needed by the console without UI-only assumptions.
@@ -264,15 +264,15 @@ Use these as small implementation handoff units. Each story should fit one focus
 - [ ] 08.F4 Server-owned song flow: request song changes from the backend instead of loading song files directly in the frontend.
 - [ ] 08.F5 Song-loaded UI update: update the frontend when the backend reports a new current song and current canvas.
 - [ ] 08.F6 Empty canvas state UI: allow a song to be loaded and preview-ready even when no show exists yet.
-- [ ] 08.F7 Main tab: add a `Main` tab in the left column with only `show name` input and a `Render` button.
-- [ ] 08.F8 Shader tabs: add one left-column tab per shader or layer property group.
+- [x] 08.F7 Main tab: add a `Main` tab in the left column with only `show name` input and a `Render` button.
+- [x] 08.F8 Shader tabs: add one left-column tab per shader or layer property group.
 - [ ] 08.F10 Fixture overlay load: load fixture references from `data/fixtures/fixtures.json`.
 - [ ] 08.F11 POI overlay load: load POI references from `data/fixtures/pois.json`.
 - [ ] 08.F12 Canvas reference overlay: draw fixtures and POIs as a visual overlay on the canvas.
 - [ ] 08.F13 Overlay marker styling: make fixture markers visually distinct from POI markers.
 - [ ] 08.F2 Artifact metadata panel: show render metadata, schema version, preset id, seed, and compatibility state.
 - [ ] 08.F3 Generation workflow UI: show render job status, progress, and failure details.
-- [ ] 08.F9 Preset-driven controls: build shader or layer controls from schema-defined groups instead of hardcoded controls.
+- [x] 08.F9 Preset-driven controls: build shader or layer controls from schema-defined groups instead of hardcoded controls.
 - [ ] 08.F14 Timeline view: add timeline display for scene and transition metadata.
 - [ ] 08.F15 Frame inspector: add pixel inspection with coordinates and RGB values.
 - [ ] 08.F16 Fullscreen preview: add fullscreen preview while preserving `100x50` pixel character.
@@ -281,11 +281,11 @@ Use these as small implementation handoff units. Each story should fit one focus
 
 ### Validation Track
 
-- [ ] 08.V1 Port configuration check: prove the frontend and backend run on the documented ports `3400` and `3401`.
+- [x] 08.V1 Port configuration check: prove the frontend and backend run on the documented ports `3400` and `3401`.
 - [ ] 08.V2 Schema error state test: prove incompatible artifacts show a clear UI state.
 - [ ] 08.V3 Song load flow test: prove the frontend asks the backend to load a song and updates when the backend confirms the new current song.
 - [ ] 08.V4 Missing canvas flow test: prove a song with no canvas still loads and only creates a show on `Render`.
-- [ ] 08.V5 Left-tab layout test: prove the left column shows one `Main` tab and one tab per shader or layer group.
+- [x] 08.V5 Left-tab layout test: prove the left column shows one `Main` tab and one tab per shader or layer group.
 - [ ] 08.V6 Overlay load test: prove fixtures and POIs load from their JSON files and render as overlay references.
 - [ ] 08.V7 Overlay alignment test: prove fixture and POI markers stay aligned to canvas coordinates.
 - [ ] 08.V8 Review workflow test: prove a user can load a song, render a show, inspect it, and approve it from the UI.

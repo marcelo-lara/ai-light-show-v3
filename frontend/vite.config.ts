@@ -31,6 +31,7 @@ export default defineConfig({
     }
   ],
   server: {
+    port: 3400,
     allowedHosts: ['s2.local'],
     fs: {
       allow: ['..', '/data']

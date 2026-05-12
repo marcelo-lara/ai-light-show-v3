@@ -1,173 +1,314 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import WaveSurfer from 'wavesurfer.js';
-import { Play, Pause, Square, Upload } from 'lucide-react';
-
-const SHOWS = [
-  "wave_01",
-  "pulse_01"
-];
+import { Pause, Play, Square, Upload } from 'lucide-react';
 
 interface FrameData {
   timestamp: number;
   pixels: number[];
 }
 
-interface ShowData {
-  metadata: {
-    song_name: string;
-    show_id: string;
-    fps: number;
-    resolution: { width: number; height: number };
-    duration_sec: number;
-    total_frames: number;
+export interface PresetParameter {
+  id: string;
+  label: string;
+  type: 'int' | 'float' | 'boolean' | 'color' | 'select';
+  default: boolean | number | string;
+  min?: number;
+  max?: number;
+  step?: number;
+  options?: string[];
+  ui_group: string;
+}
+
+export interface ModulatorConfig {
+  id: string;
+  type: 'lfo' | 'envelope';
+  params: Record<string, unknown>;
+}
+
+export interface TransitionSchema {
+  type: string;
+  duration: number;
+  params: Record<string, unknown>;
+}
+
+export interface SceneSchema {
+  start: number;
+  end: number;
+  preset_id: string;
+  params: Record<string, unknown>;
+  seed: number;
+  intensity: number;
+  transition?: TransitionSchema;
+}
+
+export interface TimelineSchema {
+  scenes: SceneSchema[];
+}
+
+export interface PresetSummary {
+  preset_id: string;
+  version: string;
+  name: string;
+  description: string;
+  tags: string[];
+  parameters: PresetParameter[];
+  modulators?: ModulatorConfig[];
+}
+
+interface ShowMetadata {
+  schema_version: string;
+  render_id: string;
+  preset_id: string;
+  preset_version: string;
+  seed: number;
+  params: Record<string, unknown>;
+  song_id: string;
+  analysis_id: string;
+  palette?: {
+    primary: string;
+    secondary: string;
+    accent: string;
+    background: string;
   };
+  analysis_diagnostics?: {
+    beat_confidence: number;
+    frame_count: number;
+    sources: string[];
+  };
+  analysis_structure?: {
+    sections: number;
+    phrases_interval: number;
+    section_candidates: number[];
+  };
+  timeline?: TimelineSchema;
+  fps: number;
+  duration: number;
+  frame_count: number;
+  resolution: { width: number; height: number };
+}
+
+interface ShowData {
+  metadata: ShowMetadata;
   frames: FrameData[];
 }
 
+interface ServerStatePayload {
+  current_song: string | null;
+  current_canvas: string | null;
+}
+
+const MAIN_TAB = 'Main';
+
 function App() {
   const [songs, setSongs] = useState<string[]>([]);
-  const [selectedSong, setSelectedSong] = useState("");
-  const [selectedShow, setSelectedShow] = useState("wave_01");
+  const [presets, setPresets] = useState<PresetSummary[]>([]);
+  const [selectedSong, setSelectedSong] = useState('');
+  const [selectedShow, setSelectedShow] = useState('undersea_pulse_01');
+  const [currentCanvas, setCurrentCanvas] = useState<string | null>(null);
+  const [activePreset, setActivePreset] = useState<PresetSummary | null>(null);
+  const [params, setParams] = useState<Record<string, boolean | number | string>>({});
+  const [activeTab, setActiveTab] = useState(MAIN_TAB);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [drift, setDrift] = useState(0);
-  const [serverState, setServerState] = useState("CONNECTED");
-  
+  const [serverState, setServerState] = useState('CONNECTED');
+
   const waveformRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wavesurfer = useRef<WaveSurfer | null>(null);
   const framesData = useRef<FrameData[]>([]);
-  const metadataRef = useRef<ShowData['metadata'] | null>(null);
+  const metadataRef = useRef<ShowMetadata | null>(null);
+  const imageDataRef = useRef<ImageData | null>(null);
   const animationRef = useRef<number>(0);
 
-  // Math parameters
-  const [beatSensitivity, setBeatSensitivity] = useState(50);
-  const [waveSpeed, setWaveSpeed] = useState(10);
-  const [waveHeight, setWaveHeight] = useState(5);
-  const [sizeMultiplier, setSizeMultiplier] = useState(50);
+  const parameterGroups = activePreset
+    ? [...new Set(activePreset.parameters.map((parameter) => parameter.ui_group))]
+    : [];
+  const controlTabs = [MAIN_TAB, ...parameterGroups];
+  const activeParameters = activePreset
+    ? activePreset.parameters.filter((parameter) => parameter.ui_group === activeTab)
+    : [];
 
-  const initWavesurfer = () => {
-    if (waveformRef.current) {
-      if (wavesurfer.current) {
-        wavesurfer.current.destroy();
-      }
-      wavesurfer.current = WaveSurfer.create({
-        container: waveformRef.current,
-        waveColor: '#333333',
-        progressColor: '#9000dd',
-        cursorColor: '#ffffff',
-        cursorWidth: 1,
-        barWidth: 2,
-        barGap: 1,
-        height: 128,
-        normalize: true,
-        minPxPerSec: 100,
-        url: `/data/songs/${selectedSong}.mp3`,
-      });
-
-      wavesurfer.current.on('ready', () => {
-        setIsLoaded(true);
-      });
-
-      wavesurfer.current.on('audioprocess', (time) => {
-        setCurrentTime(time);
-      });
-
-      wavesurfer.current.on('seeking', (time) => {
-        setCurrentTime(time);
-      });
-
-      wavesurfer.current.on('play', () => setIsPlaying(true));
-      wavesurfer.current.on('pause', () => setIsPlaying(false));
+  const initWavesurfer = (songId = selectedSong) => {
+    if (!songId || !waveformRef.current) {
+      return;
     }
+
+    if (wavesurfer.current) {
+      wavesurfer.current.destroy();
+    }
+
+    wavesurfer.current = WaveSurfer.create({
+      container: waveformRef.current,
+      waveColor: '#333333',
+      progressColor: '#9000dd',
+      cursorColor: '#ffffff',
+      cursorWidth: 1,
+      barWidth: 2,
+      barGap: 1,
+      height: 128,
+      normalize: true,
+      minPxPerSec: 100,
+      url: `/data/songs/${encodeURIComponent(songId)}.mp3`,
+    });
+
+    wavesurfer.current.on('ready', () => setIsLoaded(true));
+    wavesurfer.current.on('audioprocess', (time) => setCurrentTime(time));
+    wavesurfer.current.on('seeking', (time) => setCurrentTime(time));
+    wavesurfer.current.on('play', () => setIsPlaying(true));
+    wavesurfer.current.on('pause', () => setIsPlaying(false));
   };
 
-  const fetchFrames = async () => {
-    if (!selectedSong) return;
+  const clearFrames = () => {
+    metadataRef.current = null;
+    framesData.current = [];
+  };
+
+  const fetchServerState = async () => {
+    const response = await fetch('/api/current_state');
+    return response.json() as Promise<ServerStatePayload>;
+  };
+
+  const fetchFrames = async (canvasId: string | null = null, songId = selectedSong) => {
+    if (!songId && !canvasId) {
+      return;
+    }
+
+    const canvasToLoad = canvasId
+      ? (canvasId.endsWith('.json') ? canvasId : `${canvasId}.json`)
+      : `${songId}.${selectedShow}.json`;
+
     try {
-      const response = await fetch(`/data/canvas/${selectedSong}.${selectedShow}.json`);
-      if (response.ok) {
-        const data: ShowData = await response.json();
-        metadataRef.current = data.metadata;
-        framesData.current = data.frames;
-      } else {
-        metadataRef.current = null;
-        framesData.current = [];
+      const response = await fetch(`/data/canvas/${encodeURIComponent(canvasToLoad)}`);
+      if (!response.ok) {
+        clearFrames();
+        return;
       }
-    } catch (e) {
-      console.error(e);
-      metadataRef.current = null;
-      framesData.current = [];
+
+      const data: ShowData = await response.json();
+      if (data.metadata.schema_version !== 'v1') {
+        setServerState('INCOMPATIBLE_SCHEMA');
+        clearFrames();
+        return;
+      }
+
+      metadataRef.current = data.metadata;
+      framesData.current = data.frames;
+      setCurrentCanvas(canvasToLoad);
+    } catch (error) {
+      console.error(error);
+      clearFrames();
     }
   };
 
-  const handleLoad = () => {
+  const handleLoad = async (songId = selectedSong) => {
+    if (!songId) {
+      return;
+    }
+
+    setSelectedSong(songId);
     setIsLoaded(false);
     setIsPlaying(false);
     setCurrentTime(0);
-    initWavesurfer();
-    fetchFrames();
+
+    try {
+      const response = await fetch(`/api/load_song/${encodeURIComponent(songId)}`, {
+        method: 'POST',
+      });
+      const state: ServerStatePayload = await response.json();
+      if (!response.ok) {
+        throw new Error('Failed to load song');
+      }
+
+      const resolvedSong = state.current_song ?? songId;
+      setSelectedSong(resolvedSong);
+      setCurrentCanvas(state.current_canvas);
+      initWavesurfer(resolvedSong);
+
+      if (state.current_canvas) {
+        await fetchFrames(state.current_canvas, resolvedSong);
+      } else {
+        clearFrames();
+      }
+    } catch (error) {
+      console.error(error);
+      setServerState('ERROR');
+    }
   };
 
   const handlePlayPause = () => {
-    if (wavesurfer.current) {
-      wavesurfer.current.playPause();
-    }
+    wavesurfer.current?.playPause();
   };
 
   const handleStop = () => {
-    if (wavesurfer.current) {
-      wavesurfer.current.stop();
-      setIsPlaying(false);
-      setCurrentTime(0);
+    if (!wavesurfer.current) {
+      return;
     }
+
+    wavesurfer.current.stop();
+    setIsPlaying(false);
+    setCurrentTime(0);
   };
 
   const handleGenerate = async () => {
-    if (!selectedSong || !selectedShow) return;
-    
-    setServerState("GENERATING...");
+    if (!selectedSong || !selectedShow || !activePreset) {
+      return;
+    }
+
+    setServerState('GENERATING...');
     try {
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          song_name: selectedSong,
-          show_id: selectedShow,
-          beat_sensitivity: beatSensitivity,
-          wave_speed: waveSpeed,
-          wave_height: waveHeight,
-          size_multiplier: sizeMultiplier
-        })
+          song_id: selectedSong,
+          preset_id: selectedShow,
+          preset_version: activePreset.version,
+          seed: 42,
+          params,
+        }),
       });
-      
+
       const data = await response.json();
       const jobId = data.job;
-      
-      if (jobId) {
-        const intervalId = setInterval(async () => {
-          try {
-            const statusRes = await fetch(`/api/status/${jobId}`);
-            const statusData = await statusRes.json();
-            
-            if (statusData.status === 'COMPLETED') {
-              clearInterval(intervalId);
-              setServerState("CONNECTED");
-              handleLoad(); // Reload the UI with the new frames
-            } else if (statusData.status === 'FAILED') {
-              clearInterval(intervalId);
-              setServerState("ERROR");
-            }
-          } catch (e) {
-            clearInterval(intervalId);
-            setServerState("ERROR");
-          }
-        }, 1000);
+      if (!jobId) {
+        throw new Error('Missing job id');
       }
-    } catch (e) {
-      console.error(e);
-      setServerState("ERROR");
+
+      const intervalId = setInterval(async () => {
+        try {
+          const statusResponse = await fetch(`/api/status/${encodeURIComponent(jobId)}`);
+          const statusData = await statusResponse.json();
+
+          if (statusData.status === 'COMPLETED') {
+            clearInterval(intervalId);
+            setServerState('CONNECTED');
+
+            const state = await fetchServerState();
+            setCurrentCanvas(state.current_canvas);
+            if (state.current_song) {
+              setSelectedSong(state.current_song);
+            }
+
+            if (state.current_canvas) {
+              await fetchFrames(state.current_canvas, state.current_song ?? selectedSong);
+            } else {
+              clearFrames();
+            }
+          } else if (statusData.status === 'FAILED') {
+            clearInterval(intervalId);
+            setServerState('ERROR');
+          }
+        } catch (error) {
+          console.error(error);
+          clearInterval(intervalId);
+          setServerState('ERROR');
+        }
+      }, 1000);
+    } catch (error) {
+      console.error(error);
+      setServerState('ERROR');
     }
   };
 
@@ -177,12 +318,77 @@ function App() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Rendering loop
+  const handleParamChange = (parameterId: string, value: boolean | number | string) => {
+    setParams((currentParams) => ({
+      ...currentParams,
+      [parameterId]: value,
+    }));
+  };
+
+  const renderParameterInput = (parameter: PresetParameter) => {
+    const currentValue = params[parameter.id] ?? parameter.default;
+
+    if (parameter.type === 'boolean') {
+      return (
+        <label className="toggle-row">
+          <span>{parameter.label}</span>
+          <input
+            checked={Boolean(currentValue)}
+            onChange={(event) => handleParamChange(parameter.id, event.target.checked)}
+            type="checkbox"
+          />
+        </label>
+      );
+    }
+
+    if (parameter.type === 'select') {
+      return (
+        <select
+          value={String(currentValue)}
+          onChange={(event) => handleParamChange(parameter.id, event.target.value)}
+        >
+          {parameter.options?.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      );
+    }
+
+    if (parameter.type === 'color') {
+      return (
+        <input
+          type="color"
+          value={String(currentValue)}
+          onChange={(event) => handleParamChange(parameter.id, event.target.value)}
+        />
+      );
+    }
+
+    const min = parameter.min ?? 0;
+    const max = parameter.max ?? 100;
+    const step = parameter.step ?? (parameter.type === 'float' ? 0.1 : 1);
+
+    return (
+      <>
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={Number(currentValue)}
+          onChange={(event) => handleParamChange(parameter.id, Number(event.target.value))}
+        />
+        <span className="range-value">{currentValue}</span>
+      </>
+    );
+  };
+
   useEffect(() => {
     const renderLoop = () => {
-      // Get the exact playback time from wavesurfer to avoid react state delay
       const realTime = wavesurfer.current?.getCurrentTime() || currentTime;
-      
+
       if (canvasRef.current && framesData.current.length > 0 && metadataRef.current) {
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
@@ -190,39 +396,36 @@ function App() {
           const fps = metadataRef.current.fps || 50;
           const frameIndex = Math.floor(realTime * fps);
           const frame = framesData.current[Math.min(frameIndex, framesData.current.length - 1)];
-          
-          if (frame && frame.pixels) {
+
+          if (frame?.pixels) {
             const width = metadataRef.current.resolution.width;
             const height = metadataRef.current.resolution.height;
-            const imageData = ctx.createImageData(width, height);
-            
-            for (let i = 0; i < frame.pixels.length; i++) {
-              const val = frame.pixels[i];
-              const idx = i * 4;
-              
-              const r = (val >> 16) & 0xFF;
-              const g = (val >> 8) & 0xFF;
-              const b = val & 0xFF;
-              
-              imageData.data[idx] = r;
-              imageData.data[idx + 1] = g;
-              imageData.data[idx + 2] = b;
-              imageData.data[idx + 3] = 255;
+            if (!imageDataRef.current || imageDataRef.current.width !== width || imageDataRef.current.height !== height) {
+              imageDataRef.current = ctx.createImageData(width, height);
+            }
+
+            const imageData = imageDataRef.current;
+            const { data } = imageData;
+            for (let index = 0; index < frame.pixels.length; index += 1) {
+              const value = frame.pixels[index];
+              const pixelIndex = index << 2;
+              data[pixelIndex] = (value >> 16) & 0xff;
+              data[pixelIndex + 1] = (value >> 8) & 0xff;
+              data[pixelIndex + 2] = value & 0xff;
+              data[pixelIndex + 3] = 255;
             }
             ctx.putImageData(imageData, 0, 0);
           }
-          
-          // Calculate drift: difference between audio time and the frame timestamp
+
           if (frame) {
             const driftMs = Math.round((realTime - frame.timestamp) * 1000);
-            // Throttle drift updates to avoid react rendering too often,
-            // but for spec compliance let's just use it (or update a ref and periodically sync to state)
             if (Math.abs(drift - driftMs) > 10) {
               setDrift(driftMs);
             }
           }
         }
       }
+
       animationRef.current = requestAnimationFrame(renderLoop);
     };
 
@@ -231,54 +434,94 @@ function App() {
   }, [currentTime, drift]);
 
   useEffect(() => {
-    fetch('/api/songs')
-      .then(res => res.json())
-      .then(data => {
-        setSongs(data);
-        if (data.length > 0) {
-          setSelectedSong(data[0]);
-        }
-      })
-      .catch(err => console.error(err));
+    const loadInitialState = async () => {
+      try {
+        const [songsResponse, presetsResponse, state] = await Promise.all([
+          fetch('/api/songs'),
+          fetch('/api/presets'),
+          fetchServerState(),
+        ]);
 
-    return () => {
-      if (wavesurfer.current) {
-        wavesurfer.current.destroy();
+        const songsData: string[] = await songsResponse.json();
+        const presetsData: PresetSummary[] = await presetsResponse.json();
+        setSongs(songsData);
+        setPresets(presetsData);
+
+        const initialPreset = presetsData.find((preset) => preset.preset_id === selectedShow) ?? presetsData[0] ?? null;
+        if (initialPreset) {
+          setSelectedShow(initialPreset.preset_id);
+        }
+
+        const initialSong = state.current_song && songsData.includes(state.current_song)
+          ? state.current_song
+          : songsData[0] ?? '';
+
+        if (initialSong) {
+          await handleLoad(initialSong);
+        } else {
+          setCurrentCanvas(state.current_canvas);
+          clearFrames();
+        }
+      } catch (error) {
+        console.error(error);
+        setServerState('ERROR');
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run on mount
 
-  // Watch for selectedSong to be set initially, and load
+    void loadInitialState();
+    return () => {
+      wavesurfer.current?.destroy();
+    };
+  }, []);
+
   useEffect(() => {
-    if (selectedSong && !isLoaded && !wavesurfer.current) {
-      initWavesurfer();
-      fetchFrames();
+    const preset = presets.find((entry) => entry.preset_id === selectedShow) ?? null;
+    setActivePreset(preset);
+    setActiveTab(MAIN_TAB);
+
+    if (preset) {
+      const defaultParams = Object.fromEntries(
+        preset.parameters.map((parameter) => [parameter.id, parameter.default]),
+      );
+      setParams(defaultParams);
+    } else {
+      setParams({});
     }
-  }, [selectedSong]);
+  }, [selectedShow, presets]);
 
   return (
     <div className="app-container">
-      {/* Zone 1: Top Bar */}
       <div className="top-bar">
         <div className="selectors-group">
           <div className="selector">
             <label>SONG:</label>
-            <select value={selectedSong} onChange={(e) => setSelectedSong(e.target.value)}>
-              {songs.map(s => <option key={s} value={s}>{s}</option>)}
+            <select value={selectedSong} onChange={(event) => void handleLoad(event.target.value)}>
+              {songs.map((song) => (
+                <option key={song} value={song}>
+                  {song}
+                </option>
+              ))}
             </select>
           </div>
-          <div className="selector">
-            <label>SHOW:</label>
-            <select value={selectedShow} onChange={(e) => setSelectedShow(e.target.value)} disabled={!selectedSong}>
-              {SHOWS.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
+          <div className="canvas-state">
+            <span className="canvas-state-label">CANVAS:</span>
+            <span className={currentCanvas ? 'canvas-state-value' : 'canvas-state-empty'}>
+              {currentCanvas ? currentCanvas.replace('.json', '') : 'no canvas loaded'}
+            </span>
           </div>
         </div>
+
         <div className="status-strip">
           <div className="drift-gauge">
             <div className="drift-baseline"></div>
-            <div className="drift-bar" style={{ width: `${Math.min(Math.abs(drift), 100)}%`, left: drift < 0 ? 'auto' : '50%', right: drift < 0 ? '50%' : 'auto' }}></div>
+            <div
+              className="drift-bar"
+              style={{
+                width: `${Math.min(Math.abs(drift), 100)}%`,
+                left: drift < 0 ? 'auto' : '50%',
+                right: drift < 0 ? '50%' : 'auto',
+              }}
+            ></div>
             <span className="drift-text">{drift > 0 ? `+${drift}` : drift}ms</span>
           </div>
           <div className={`status-chip ${isPlaying ? 'success' : isLoaded ? 'success' : 'muted'}`}>
@@ -288,17 +531,33 @@ function App() {
             {serverState === 'CONNECTED' ? 'SERVER' : serverState}
           </div>
         </div>
+
+        {metadataRef.current && (
+          <div className="metadata-panel">
+            <div className="metadata-row">
+              <span>Schema: {metadataRef.current.schema_version}</span>
+              <span>Render ID: {metadataRef.current.render_id?.substring(0, 8)}</span>
+              <span>Preset: {metadataRef.current.preset_id}</span>
+              <span>Seed: {metadataRef.current.seed}</span>
+            </div>
+            {metadataRef.current.analysis_diagnostics && (
+              <div className="metadata-row">
+                <span>Beat Confidence: {metadataRef.current.analysis_diagnostics.beat_confidence?.toFixed(2)}</span>
+                <span>Sections: {metadataRef.current.analysis_structure?.section_candidates?.length || 0}</span>
+                <span>Phrase Length: {metadataRef.current.analysis_structure?.phrases_interval?.toFixed(2)}s</span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Zone 2: Waveform Area */}
       <div className="waveform-area">
         <div ref={waveformRef} className="waveform-container"></div>
       </div>
 
-      {/* Zone 3: Transport Controls */}
       <div className="transport-row">
         <div className="transport-controls">
-          <button className="btn-icon load" onClick={handleLoad} disabled={!selectedSong} title="Load">
+          <button className="btn-icon load" onClick={() => void handleLoad()} disabled={!selectedSong} title="Load">
             <Upload size={24} />
           </button>
           <button className="btn-icon stop" onClick={handleStop} disabled={!isLoaded} title="Stop">
@@ -308,69 +567,74 @@ function App() {
             {isPlaying ? <Pause size={32} /> : <Play size={32} />}
           </button>
         </div>
-        <div className="transport-clock">
-          {formatTime(currentTime)}
-        </div>
+        <div className="transport-clock">{formatTime(currentTime)}</div>
       </div>
 
-      {/* Zone 4: Bottom Area */}
       <div className="bottom-area">
-        <div className="math-parameters">
-          <div className="math-section">
-            <div className="math-section-title">Beat Detection</div>
-            <div className="form-group">
-              <label>Sensitivity</label>
-              <input type="range" min="0" max="100" value={beatSensitivity} onChange={(e) => setBeatSensitivity(Number(e.target.value))} />
-              <span className="range-value">{beatSensitivity}%</span>
-            </div>
+        <div className="control-panel">
+          <div className="control-tabs">
+            {controlTabs.map((tab) => (
+              <button
+                key={tab}
+                className={`control-tab ${tab === activeTab ? 'active' : ''}`}
+                onClick={() => setActiveTab(tab)}
+                type="button"
+              >
+                {tab}
+              </button>
+            ))}
           </div>
-          <div className="math-section">
-            <div className="math-section-title">Wave Logic</div>
-            <div className="form-group">
-              <label>Speed Modifier</label>
-              <input type="range" min="1" max="50" value={waveSpeed} onChange={(e) => setWaveSpeed(Number(e.target.value))} />
-              <span className="range-value">{waveSpeed}x</span>
-            </div>
-            <div className="form-group">
-              <label>Amplitude Base</label>
-              <input type="range" min="1" max="20" value={waveHeight} onChange={(e) => setWaveHeight(Number(e.target.value))} />
-              <span className="range-value">{waveHeight}px</span>
-            </div>
-          </div>
-          <div className="math-section">
-            <div className="math-section-title">Shapes</div>
-            <div className="form-group">
-              <label>Size Multiplier</label>
-              <input type="range" min="1" max="100" value={sizeMultiplier} onChange={(e) => setSizeMultiplier(Number(e.target.value))} />
-              <span className="range-value">{sizeMultiplier}%</span>
-            </div>
-            <button 
-              style={{
-                width: '100%', 
-                marginTop: '1.5rem', 
-                padding: '0.75rem', 
-                backgroundColor: serverState === 'GENERATING...' ? '#333' : '#9000dd', 
-                color: serverState === 'GENERATING...' ? '#888' : '#fff', 
-                border: 'none', 
-                fontFamily: 'monospace',
-                fontWeight: 'bold',
-                cursor: serverState === 'GENERATING...' ? 'not-allowed' : 'pointer'
-              }} 
-              onClick={handleGenerate} 
-              disabled={serverState === 'GENERATING...'}
-            >
-              {serverState === 'GENERATING...' ? 'GENERATING...' : 'APPLY PARAMETERS'}
-            </button>
+
+          <div className="control-panel-body">
+            {activeTab === MAIN_TAB ? (
+              <div className="main-tab-panel">
+                <div className="math-section">
+                  <div className="math-section-title">Main</div>
+                  <div className="form-group">
+                    <label>Show Name</label>
+                    <select value={selectedShow} onChange={(event) => setSelectedShow(event.target.value)}>
+                      {presets.map((preset) => (
+                        <option key={preset.preset_id} value={preset.preset_id}>
+                          {preset.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {activePreset && (
+                    <div className="preset-summary">
+                      <p>{activePreset.description}</p>
+                      <div className="preset-tags">
+                        {activePreset.tags.map((tag) => (
+                          <span key={tag} className="tag-chip">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <button className="render-button" onClick={handleGenerate} disabled={serverState === 'GENERATING...' || !selectedSong || !activePreset}>
+                    {serverState === 'GENERATING...' ? 'GENERATING...' : 'RENDER'}
+                  </button>
+                </div>
+              </div>
+            ) : activeParameters.length > 0 ? (
+              <div className="tab-panel">
+                <div className="math-section-title">{activeTab}</div>
+                {activeParameters.map((parameter) => (
+                  <div className="form-group" key={parameter.id}>
+                    <label>{parameter.label}</label>
+                    {renderParameterInput(parameter)}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-panel">No controls in this parameter group.</div>
+            )}
           </div>
         </div>
+
         <div className="canvas-render">
-          <canvas
-            ref={canvasRef}
-            width="100"
-            height="50"
-            className="main-canvas"
-            style={{ width: '1000px', height: '500px', imageRendering: 'pixelated' }}
-          ></canvas>
+          <canvas ref={canvasRef} width={100} height={50} className="main-canvas"></canvas>
         </div>
       </div>
     </div>

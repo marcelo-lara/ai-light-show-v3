@@ -1,55 +1,127 @@
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel
 import os
+import json
 from engine.analyzer import AudioAnalyzer
 from engine.renderer import FrameRenderer
+from engine.preset_schema import PresetSchema
+from pydantic import ValidationError
 
 router = APIRouter()
 
-class GenerateRequest(BaseModel):
-    song_name: str
-    show_id: str
-    beat_sensitivity: int = 50
-    wave_speed: int = 10
-    wave_height: int = 5
-    size_multiplier: int = 50
-
+# Global State
+CURRENT_SONG = None
+CURRENT_CANVAS = None
 JOB_STATUS = {}
 
-def run_generation(job_id: str, song_name: str, show_id: str, params: dict):
+
+def find_canvas_for_song(song_id: str):
+    canvas_dir = "/data/canvas"
+    if not os.path.exists(canvas_dir):
+        return None
+
+    candidates = [
+        entry for entry in os.listdir(canvas_dir)
+        if entry.startswith(f"{song_id}.") and entry.endswith(".json")
+    ]
+    if not candidates:
+        return None
+
+    candidates.sort(
+        key=lambda entry: os.path.getmtime(os.path.join(canvas_dir, entry)),
+        reverse=True,
+    )
+    return candidates[0]
+
+class GenerateRequest(BaseModel):
+    song_id: str
+    preset_id: str = "undersea_pulse_01"
+    preset_version: str = "1.0.0"
+    seed: int
+    params: dict = {}
+
+def run_generation(job_id: str, request: GenerateRequest):
+    global CURRENT_SONG, CURRENT_CANVAS
     JOB_STATUS[job_id] = "GENERATING"
     try:
-        song_path = f"/data/songs/{song_name}.mp3"
+        song_path = f"/data/songs/{request.song_id}.mp3"
         if not os.path.exists(song_path):
             print(f"Error: Song {song_path} not found")
             JOB_STATUS[job_id] = "FAILED"
             return
             
-        renderer = FrameRenderer(song_path, params=params)
-        renderer.export(show_id=show_id)
+        preset_path = f"/data/presets/{request.preset_id}.json"
+        if not os.path.exists(preset_path):
+            print(f"Error: Preset {preset_path} not found")
+            JOB_STATUS[job_id] = "FAILED"
+            return
+            
+        with open(preset_path, 'r') as f:
+            preset_data = json.load(f)
+            
+        try:
+            preset = PresetSchema(**preset_data)
+            if preset.version != request.preset_version:
+                print(f"Error: Preset version mismatch")
+                JOB_STATUS[job_id] = "FAILED"
+                return
+        except ValidationError as e:
+            print(f"Preset Validation Error: {e}")
+            JOB_STATUS[job_id] = "FAILED"
+            return
+            
+        renderer = FrameRenderer(
+            song_path=song_path,
+            seed=request.seed,
+            preset_id=request.preset_id,
+            preset_version=request.preset_version,
+            params=request.params
+        )
         
-        print(f"Generation complete for {song_name}.{show_id}")
+        output_path = renderer.export()
+        CURRENT_SONG = request.song_id
+        CURRENT_CANVAS = os.path.basename(output_path)
+        
+        print(f"Generation complete for {request.song_id}")
         JOB_STATUS[job_id] = "COMPLETED"
     except Exception as e:
         print(f"Generation failed: {e}")
         JOB_STATUS[job_id] = "FAILED"
 
+@router.post("/load_song/{song_id}")
+async def load_song(song_id: str):
+    global CURRENT_SONG, CURRENT_CANVAS
+    song_path = f"/data/songs/{song_id}.mp3"
+    if not os.path.exists(song_path):
+        raise HTTPException(status_code=404, detail=f"Song {song_id}.mp3 not found")
+        
+    CURRENT_SONG = song_id
+    if not CURRENT_CANVAS or not CURRENT_CANVAS.startswith(f"{song_id}."):
+        CURRENT_CANVAS = find_canvas_for_song(song_id)
+    
+    return {
+        "current_song": CURRENT_SONG,
+        "current_canvas": CURRENT_CANVAS,
+        "message": f"Loaded {song_id}"
+    }
+
+@router.get("/current_state")
+async def get_current_state():
+    return {
+        "current_song": CURRENT_SONG,
+        "current_canvas": CURRENT_CANVAS
+    }
+
 @router.post("/generate")
 async def generate_show(request: GenerateRequest, background_tasks: BackgroundTasks):
-    song_path = f"/data/songs/{request.song_name}.mp3"
+    song_path = f"/data/songs/{request.song_id}.mp3"
     if not os.path.exists(song_path):
-        raise HTTPException(status_code=404, detail=f"Song {request.song_name}.mp3 not found in data/songs/")
+        raise HTTPException(status_code=404, detail=f"Song {request.song_id}.mp3 not found in data/songs/")
         
-    job_id = f"{request.song_name}.{request.show_id}"
-    params = {
-        "beat_sensitivity": request.beat_sensitivity,
-        "wave_speed": request.wave_speed,
-        "wave_height": request.wave_height,
-        "size_multiplier": request.size_multiplier
-    }
+    job_id = f"{request.song_id}_{request.seed}"
     
     JOB_STATUS[job_id] = "PENDING"
-    background_tasks.add_task(run_generation, job_id, request.song_name, request.show_id, params)
+    background_tasks.add_task(run_generation, job_id, request)
     return {"message": "Generation started in background", "job": job_id}
 
 @router.get("/status/{job_id}")
@@ -69,3 +141,25 @@ async def list_canvas_files():
     if not os.path.exists(canvas_dir):
         return []
     return [f for f in os.listdir(canvas_dir) if f.endswith(".json")]
+
+@router.get("/presets")
+async def list_presets():
+    presets_dir = "/data/presets"
+    if not os.path.exists(presets_dir):
+        return []
+
+    presets = []
+    for entry in sorted(os.listdir(presets_dir)):
+        if not entry.endswith(".json"):
+            continue
+
+        preset_path = os.path.join(presets_dir, entry)
+        with open(preset_path, 'r') as handle:
+            preset_data = json.load(handle)
+
+        try:
+            presets.append(PresetSchema(**preset_data).model_dump())
+        except ValidationError:
+            continue
+
+    return presets
