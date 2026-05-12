@@ -14,6 +14,10 @@ CURRENT_SONG = None
 CURRENT_CANVAS = None
 JOB_STATUS = {}
 
+# 01.B4: Supported versions
+SUPPORTED_RENDER_SCHEMA = "v1"
+SUPPORTED_PRESET_VERSIONS = ["1.0.0"]
+
 
 def find_canvas_for_song(song_id: str):
     canvas_dir = "/data/canvas"
@@ -114,13 +118,36 @@ async def get_current_state():
 
 @router.post("/generate")
 async def generate_show(request: GenerateRequest, background_tasks: BackgroundTasks):
+    # 01.B4: Backend compatibility checks (Reject early)
     song_path = f"/data/songs/{request.song_id}.mp3"
     if not os.path.exists(song_path):
         raise HTTPException(status_code=404, detail=f"Song {request.song_id}.mp3 not found in data/songs/")
         
+    preset_path = f"/data/presets/{request.preset_id}.json"
+    if not os.path.exists(preset_path):
+        raise HTTPException(status_code=404, detail=f"Preset {request.preset_id} not found")
+    
+    with open(preset_path, 'r') as f:
+        preset_data = json.load(f)
+    
+    try:
+        preset = PresetSchema(**preset_data)
+        if preset.version not in SUPPORTED_PRESET_VERSIONS:
+             raise HTTPException(status_code=400, detail=f"Unsupported preset version: {preset.version}")
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid preset schema: {e}")
+
     job_id = f"{request.song_id}_{request.seed}"
     
-    JOB_STATUS[job_id] = "PENDING"
+    # 08.B1: Generation status payload with details
+    JOB_STATUS[job_id] = {
+        "status": "PENDING",
+        "song_id": request.song_id,
+        "preset_id": request.preset_id,
+        "seed": request.seed,
+        "progress": 0
+    }
+    
     background_tasks.add_task(run_generation, job_id, request)
     return {"message": "Generation started in background", "job": job_id}
 
@@ -163,3 +190,16 @@ async def list_presets():
             continue
 
     return presets
+
+@router.get("/canvas/{canvas_id}/metadata")
+async def get_canvas_metadata(canvas_id: str):
+    # 08.B2: Metadata payload support
+    canvas_path = f"/data/canvas/{canvas_id}"
+    if not os.path.exists(canvas_path):
+         raise HTTPException(status_code=404, detail="Canvas not found")
+    
+    with open(canvas_path, 'r') as f:
+        data = json.load(f)
+    
+    # Strip actual frame data to return only metadata
+    return {k: v for k, v in data.items() if k != "frames"}

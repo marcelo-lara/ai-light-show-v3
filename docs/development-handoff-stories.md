@@ -35,11 +35,11 @@ Use these as small implementation handoff units. Each story should fit one focus
 ### Backend Track
 
 - [x] 01.B1 Artifact schema v1: add `schema_version`, `render_id`, `preset_id`, `preset_version`, `seed`, `params`, `song_id`, `analysis_id`, `fps`, `duration`, and `frame_count` to the render artifact.
-- [ ] 01.B2 Render id rules: generate a stable `render_id` from reproducible inputs instead of a random export id.
-- [ ] 01.B3 Seed rules: make seed handling explicit and required in the render contract.
-- [ ] 01.B4 Backend compatibility checks: reject missing required fields and unsupported schema versions.
+- [x] 01.B2 Render id rules: generate a stable `render_id` from reproducible inputs instead of a random export id.
+- [x] 01.B3 Seed rules: make seed handling explicit and required in the render contract.
+- [x] 01.B4 Backend compatibility checks: reject missing required fields and unsupported schema versions.
 - [x] 01.B5 Current song state: add backend-owned `current_song` and `current_canvas` state to the playback contract.
-- [ ] 01.B6 Empty canvas state: define the contract for a loaded song with no current canvas yet.
+- [x] 01.B6 Empty canvas state: define the contract for a loaded song with no current canvas yet.
 
 ### Frontend Track
 
@@ -50,22 +50,22 @@ Use these as small implementation handoff units. Each story should fit one focus
 
 ### Validation Track
 
-- [ ] 01.V1 Deterministic render test: prove the same song, preset, params, and seed produce identical frames.
-- [ ] 01.V2 Stable render id test: prove the same inputs produce the same `render_id`.
+- [x] 01.V1 Deterministic render test: prove the same song, preset, params, and seed produce identical frames.
+- [x] 01.V2 Stable render id test: prove the same inputs produce the same `render_id`.
 - [ ] 01.V3 Golden sample fixture: add one short canonical render artifact for regression checks.
-- [ ] 01.V4 Empty canvas contract test: prove a song can load without an existing canvas or show.
+- [x] 01.V4 Empty canvas contract test: prove a song can load without an existing canvas or show.
 
 ## Epic 02: Analysis IR
 
 ### Backend Track
 
-- [ ] 02.B1 Analysis schema v1: version the analysis cache and invalidate it when analyzer logic changes.
-- [ ] 02.B2 Beat timing signals: add `beat_phase` and nearest-beat distance to timestamp queries.
-- [ ] 02.B3 Bar timing signal: add `bar_phase` to timestamp queries.
-- [ ] 02.B4 Smoothed envelopes: add smoothed per-band envelopes.
-- [ ] 02.B5 Global energy: add a normalized global energy curve.
-- [ ] 02.B6 Musical structure: add downbeat, phrase, and section candidates with confidence values.
-- [ ] 02.B7 Analysis diagnostics: expose confidence, source metadata, and basic debug stats in the analysis artifact.
+- [x] 02.B1 Analysis schema v1: version the analysis cache and invalidate it when analyzer logic changes.
+- [x] 02.B2 Beat timing signals: add `beat_phase` and nearest-beat distance to timestamp queries.
+- [x] 02.B3 Bar timing signal: add `bar_phase` to timestamp queries.
+- [x] 02.B4 Smoothed envelopes: add smoothed per-band envelopes.
+- [x] 02.B5 Global energy: add a normalized global energy curve.
+- [x] 02.B6 Musical structure: add downbeat, phrase, and section candidates with confidence values.
+- [x] 02.B7 Analysis diagnostics: expose confidence, source metadata, and basic debug stats in the analysis artifact.
 
 ### Frontend Track
 
@@ -82,13 +82,13 @@ Use these as small implementation handoff units. Each story should fit one focus
 
 ### Backend Track
 
-- [ ] 03.B1 Preset format v1: define preset identity, version, display fields, tags, and description.
-- [ ] 03.B2 Parameter schema: define typed parameters with defaults, bounds, step size, and UI grouping.
-- [ ] 03.B3 Layer stack schema: let a preset declare ordered layers and per-layer params.
-- [ ] 03.B4 Palette schema: let a preset declare palette and color controls.
-- [ ] 03.B5 Blend schema: let a preset declare blend modes at preset or layer level.
-- [ ] 03.B6 Preset validation: fail invalid presets with actionable errors before render time.
-- [ ] 03.B7 Baseline preset migration: represent the current wave plus pulse look as preset `undersea_pulse_01`.
+- [x] 03.B1 Preset format v1: define preset identity, version, display fields, tags, and description.
+- [x] 03.B2 Parameter schema: define typed parameters with defaults, bounds, step size, and UI grouping.
+- [x] 03.B3 Layer stack schema: let a preset declare ordered layers and per-layer params.
+- [x] 03.B4 Palette schema: let a preset declare palette and color controls.
+- [x] 03.B5 Blend schema: let a preset declare blend modes at preset or layer level.
+- [x] 03.B6 Preset validation: fail invalid presets with actionable errors before render time.
+- [x] 03.B7 Baseline preset migration: represent the current wave plus pulse look as preset `undersea_pulse_01`.
 
 ### Frontend Track
 
@@ -106,18 +106,18 @@ Use these as small implementation handoff units. Each story should fit one focus
 
 ### Backend Track
 
-- [ ] 04.B1 Layer interface: define a registry-based layer API with deterministic seeded execution.
-- [ ] 04.B2 Wave layer migration: convert wave into a reusable registry-backed layer.
-- [ ] 04.B3 Radial pulse migration: convert radial pulse into a reusable registry-backed layer.
-- [ ] 04.B4 Solid field layer: add a solid fill layer.
-- [ ] 04.B5 Gradient field layer: add a gradient layer.
-- [ ] 04.B6 Bars layer: add horizontal or vertical bars.
-- [ ] 04.B7 Rings layer: add ring or expanding pulse output.
-- [ ] 04.B8 Beat flash layer: add a beat flash layer.
-- [ ] 04.B9 Scanner layer: add a scanner or sweep layer.
-- [ ] 04.B10 Mirror transform: add mirror or symmetry transforms.
-- [ ] 04.B11 Blend ops: add `max`, `add`, `alpha`, `multiply`, `screen`, `difference`, and `mask`.
-- [ ] 04.B12 Scroll and zoom transforms: add scroll and zoom transforms.
+- [x] 04.B1 Layer interface: define a registry-based layer API with deterministic seeded execution.
+- [x] 04.B2 Wave layer migration: convert wave into a reusable registry-backed layer.
+- [x] 04.B3 Radial pulse migration: convert radial pulse into a reusable registry-backed layer.
+- [x] 04.B4 Solid field layer: add a solid fill layer.
+- [x] 04.B5 Gradient field layer: add a gradient layer.
+- [x] 04.B6 Bars layer: add horizontal or vertical bars.
+- [x] 04.B7 Rings layer: add ring or expanding pulse output.
+- [x] 04.B8 Beat flash layer: add a beat flash layer.
+- [x] 04.B9 Scanner layer: add a scanner or sweep layer.
+- [x] 04.B10 Mirror transform: add mirror or symmetry transforms.
+- [x] 04.B11 Blend ops: add `max`, `add`, `alpha`, `multiply`, `screen`, `difference`, and `mask`.
+- [x] 04.B12 Scroll and zoom transforms: add scroll and zoom transforms.
 
 ### Frontend Track
 
@@ -134,13 +134,13 @@ Use these as small implementation handoff units. Each story should fit one focus
 
 ### Backend Track
 
-- [ ] 05.B1 Audio modulator sources: support band envelopes, onset, beat pulse, beat phase, bar phase, and phrase progress.
-- [ ] 05.B2 Procedural modulator sources: support LFO and seeded random sources.
-- [ ] 05.B3 Mapping ops part 1: support scale, clamp, and invert.
-- [ ] 05.B4 Mapping ops part 2: support curve, smooth, lag, and quantize.
-- [ ] 05.B5 Preset bindings: allow presets to bind modulators to layer parameters without custom Python code.
-- [ ] 05.B6 Deterministic execution: make modulator outputs stable for the same analysis, seed, and time.
-- [ ] 05.B7 Debug output shape: expose resolved modulator values in a structured format.
+- [x] 05.B1 Audio modulator sources: support band envelopes, onset, beat pulse, beat phase, bar phase, and phrase progress.
+- [x] 05.B2 Procedural modulator sources: support LFO and seeded random sources.
+- [x] 05.B3 Mapping ops part 1: support scale, clamp, and invert.
+- [x] 05.B4 Mapping ops part 2: support curve, smooth, lag, and quantize.
+- [x] 05.B5 Preset bindings: allow presets to bind modulators to layer parameters without custom Python code.
+- [x] 05.B6 Deterministic execution: make modulator outputs stable for the same analysis, seed, and time.
+- [x] 05.B7 Debug output shape: expose resolved modulator values in a structured format.
 
 ### Frontend Track
 
@@ -157,12 +157,12 @@ Use these as small implementation handoff units. Each story should fit one focus
 
 ### Backend Track
 
-- [ ] 11.B1 Raindrops layer spec: define a POI-aware radial pulse layer named `raindrops`.
-- [ ] 11.B2 POI source selection: allow pulses to start from one or more configured POIs.
-- [ ] 11.B3 POI transit behavior: allow pulses to pass through configured POIs on the canvas.
-- [ ] 11.B4 POI collision behavior: allow pulses to collide at configured POIs and create a visible interaction.
-- [ ] 11.B5 Parameter schema: define controls for pulse rate, radius growth, decay, collision strength, and POI selection.
-- [ ] 11.B6 Preset integration: make the raindrops shader usable from the preset and layer system.
+- [x] 11.B1 Raindrops layer spec: define a POI-aware radial pulse layer named `raindrops`.
+- [x] 11.B2 POI source selection: allow pulses to start from one or more configured POIs.
+- [x] 11.B3 POI transit behavior: allow pulses to pass through configured POIs on the canvas.
+- [x] 11.B4 POI collision behavior: allow pulses to collide at configured POIs and create a visible interaction.
+- [x] 11.B5 Parameter schema: define controls for pulse rate, radius growth, decay, collision strength, and POI selection.
+- [x] 11.B6 Preset integration: make the raindrops shader usable from the preset and layer system.
 
 ### Frontend Track
 
@@ -181,13 +181,13 @@ Use these as small implementation handoff units. Each story should fit one focus
 
 ### Backend Track
 
-- [ ] 12.B2 Central spectroid signal: define the analysis input for central spectroid, note, or chord-reactive triggering.
-- [ ] 12.B1 Chase layer spec: define a note or chord-reactive shader named `spectroid_chase`.
-- [ ] 12.B3 Parcan anchor selection: use parcan fixture positions as chase origin anchors on the canvas.
-- [ ] 12.B4 Chase path generation: generate outward line motion from parcan anchors toward the canvas.
-- [ ] 12.B5 Moving head follow lines: define line-follow behavior that moving heads can track visually later.
-- [ ] 12.B6 Parameter schema: define controls for trigger sensitivity, line length, spread, fade, and chase speed.
-- [ ] 12.B7 Preset integration: make the shader usable from the preset and layer system.
+- [x] 12.B2 Central spectroid signal: define the analysis input for central spectroid, note, or chord-reactive triggering.
+- [x] 12.B1 Chase layer spec: define a note or chord-reactive shader named `spectroid_chase`.
+- [x] 12.B3 Parcan anchor selection: use parcan fixture positions as chase origin anchors on the canvas.
+- [x] 12.B4 Chase path generation: generate outward line motion from parcan anchors toward the canvas.
+- [x] 12.B5 Moving head follow lines: define line-follow behavior that moving heads can track visually later.
+- [x] 12.B6 Parameter schema: define controls for trigger sensitivity, line length, spread, fade, and chase speed.
+- [x] 12.B7 Preset integration: make the shader usable from the preset and layer system.
 
 ### Frontend Track
 
@@ -206,13 +206,13 @@ Use these as small implementation handoff units. Each story should fit one focus
 
 ### Backend Track
 
-- [ ] 06.B1 Scene model: define scene fields for `start`, `end`, `preset_id`, `params`, `seed`, and `intensity`.
-- [ ] 06.B2 Auto timeline from sections: generate a first-pass timeline from detected sections.
-- [ ] 06.B3 Auto timeline from phrases or beats: support fallback scene generation from phrase or beat grouping.
-- [ ] 06.B4 Scene overrides: support manual scene edits without breaking auto-generated defaults.
-- [ ] 06.B5 Scene automation: support scene-level intensity automation.
-- [ ] 06.B6 Param automation: support scene-level parameter automation.
-- [ ] 06.B7 Artifact integration: include timeline metadata in render artifacts.
+- [x] 06.B1 Scene model: define scene fields for `start`, `end`, `preset_id`, `params`, `seed`, and `intensity`.
+- [x] 06.B2 Auto timeline from sections: generate a first-pass timeline from detected sections.
+- [x] 06.B3 Auto timeline from phrases or beats: support fallback scene generation from phrase or beat grouping.
+- [x] 06.B4 Scene overrides: support manual scene edits without breaking auto-generated defaults.
+- [x] 06.B5 Scene automation: support scene-level intensity automation.
+- [x] 06.B6 Param automation: support scene-level parameter automation.
+- [x] 06.B7 Artifact integration: include timeline metadata in render artifacts.
 
 ### Frontend Track
 
@@ -229,13 +229,13 @@ Use these as small implementation handoff units. Each story should fit one focus
 
 ### Backend Track
 
-- [ ] 07.B1 Transition model: define transition type, alignment target, duration, and params.
-- [ ] 07.B2 Hard cut: implement hard cut transitions.
-- [ ] 07.B3 Crossfade: implement crossfade transitions.
-- [ ] 07.B4 Beat flash cut: implement beat flash cut transitions.
-- [ ] 07.B5 Beat-aware alignment: allow transitions to snap to beat, bar, phrase, or section boundaries.
-- [ ] 07.B6 Transition metadata: expose transition metadata in render artifacts.
-- [ ] 07.B7 Transition debug info: expose preview or debug information in artifacts.
+- [x] 07.B1 Transition model: define transition type, alignment target, duration, and params.
+- [x] 07.B2 Hard cut: implement hard cut transitions.
+- [x] 07.B3 Crossfade: implement crossfade transitions.
+- [x] 07.B4 Beat flash cut: implement beat flash cut transitions.
+- [x] 07.B5 Beat-aware alignment: allow transitions to snap to beat, bar, phrase, or section boundaries.
+- [x] 07.B6 Transition metadata: expose transition metadata in render artifacts.
+- [x] 07.B7 Transition debug info: expose preview or debug information in artifacts.
 
 ### Frontend Track
 
@@ -253,10 +253,10 @@ Use these as small implementation handoff units. Each story should fit one focus
 ### Backend Track
 
 - [x] 08.B3 Song load endpoint: add one backend action that sets the current song and returns the updated current song plus current canvas state.
-- [ ] 08.B4 Missing canvas on load: make song-load succeed even when no show exists for that song.
-- [ ] 08.B5 Render action contract: make `Render` create or replace the current canvas for the already loaded song.
-- [ ] 08.B2 Metadata payload support: expose artifact metadata needed by the console without UI-only assumptions.
-- [ ] 08.B1 Generation status payload: expose render job status, progress, and failure details through the API.
+- [x] 08.B4 Missing canvas on load: make song-load succeed even when no show exists for that song.
+- [x] 08.B5 Render action contract: make `Render` create or replace the current canvas for the already loaded song.
+- [x] 08.B2 Metadata payload support: expose artifact metadata needed by the console without UI-only assumptions.
+- [x] 08.B1 Generation status payload: expose render job status, progress, and failure details through the API.
 
 ### Frontend Track
 
