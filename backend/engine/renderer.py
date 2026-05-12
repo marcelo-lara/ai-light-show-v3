@@ -9,11 +9,13 @@ import os
 import uuid
 import hashlib
 import random
+import time
 from .analyzer import AudioAnalyzer
 from .layers import FrameContext, get_layer
 from .preset_schema import PresetSchema
 from .modulators import get_modulator
 from .timeline import TimelineDirector, TimelineSchema
+from .diagnostics import Diagnostics
 
 class Compositor:
     @staticmethod
@@ -118,6 +120,9 @@ class FrameRenderer:
         random.seed(self.seed)
         
         frames = []
+        # diagnostics collector
+        diagnostics = Diagnostics(self.coords.shape[0])
+        start_time = time.time()
         print(f"Generating {total_frames} frames at {self.fps} FPS...")
         
         active_scene = None
@@ -194,6 +199,8 @@ class FrameRenderer:
 
             # Render current scene
             final_pixels = render_scene_state(active_scene, preset, active_layers, active_modulators)
+            # update diagnostics with raw (N,3) uint8 pixels
+            diagnostics.update(final_pixels)
             
             # Apply transition if active
             if active_scene.transition and prev_scene is not None:
@@ -226,6 +233,9 @@ class FrameRenderer:
             if frame_idx % 500 == 0 and frame_idx > 0:
                 print(f"Processed {frame_idx}/{total_frames} frames...")
                 
+        end_time = time.time()
+        # store diagnostics summary on the renderer for export
+        self.render_diagnostics = diagnostics.summary(render_duration=end_time - start_time)
         return frames
 
     def export(self):
@@ -253,7 +263,8 @@ class FrameRenderer:
             "duration": self.analysis_data['duration'],
             "frame_count": len(frames),
             "resolution": {"width": self.width, "height": self.height},
-            "timeline": self.timeline.dict()
+            "timeline": self.timeline.dict(),
+            "render_diagnostics": getattr(self, 'render_diagnostics', {})
         }
         
         with open(output_path, 'w') as f:

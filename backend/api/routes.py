@@ -46,18 +46,28 @@ class GenerateRequest(BaseModel):
 
 def run_generation(job_id: str, request: GenerateRequest):
     global CURRENT_SONG, CURRENT_CANVAS
-    JOB_STATUS[job_id] = "GENERATING"
+    # Ensure job status shape remains a dict created by the API
+    if job_id not in JOB_STATUS or not isinstance(JOB_STATUS[job_id], dict):
+        JOB_STATUS[job_id] = {"status": "GENERATING"}
+    else:
+        JOB_STATUS[job_id]["status"] = "GENERATING"
     try:
         song_path = f"/data/songs/{request.song_id}.mp3"
         if not os.path.exists(song_path):
             print(f"Error: Song {song_path} not found")
-            JOB_STATUS[job_id] = "FAILED"
+            if isinstance(JOB_STATUS.get(job_id), dict):
+                JOB_STATUS[job_id]["status"] = "FAILED"
+            else:
+                JOB_STATUS[job_id] = "FAILED"
             return
             
         preset_path = f"/data/presets/{request.preset_id}.json"
         if not os.path.exists(preset_path):
             print(f"Error: Preset {preset_path} not found")
-            JOB_STATUS[job_id] = "FAILED"
+            if isinstance(JOB_STATUS.get(job_id), dict):
+                JOB_STATUS[job_id]["status"] = "FAILED"
+            else:
+                JOB_STATUS[job_id] = "FAILED"
             return
             
         with open(preset_path, 'r') as f:
@@ -67,11 +77,17 @@ def run_generation(job_id: str, request: GenerateRequest):
             preset = PresetSchema(**preset_data)
             if preset.version != request.preset_version:
                 print(f"Error: Preset version mismatch")
-                JOB_STATUS[job_id] = "FAILED"
+                if isinstance(JOB_STATUS.get(job_id), dict):
+                    JOB_STATUS[job_id]["status"] = "FAILED"
+                else:
+                    JOB_STATUS[job_id] = "FAILED"
                 return
         except ValidationError as e:
             print(f"Preset Validation Error: {e}")
-            JOB_STATUS[job_id] = "FAILED"
+            if isinstance(JOB_STATUS.get(job_id), dict):
+                JOB_STATUS[job_id]["status"] = "FAILED"
+            else:
+                JOB_STATUS[job_id] = "FAILED"
             return
             
         renderer = FrameRenderer(
@@ -87,10 +103,17 @@ def run_generation(job_id: str, request: GenerateRequest):
         CURRENT_CANVAS = os.path.basename(output_path)
         
         print(f"Generation complete for {request.song_id}")
-        JOB_STATUS[job_id] = "COMPLETED"
+        if isinstance(JOB_STATUS.get(job_id), dict):
+            JOB_STATUS[job_id]["status"] = "COMPLETED"
+            JOB_STATUS[job_id]["canvas"] = CURRENT_CANVAS
+        else:
+            JOB_STATUS[job_id] = "COMPLETED"
     except Exception as e:
         print(f"Generation failed: {e}")
-        JOB_STATUS[job_id] = "FAILED"
+        if isinstance(JOB_STATUS.get(job_id), dict):
+            JOB_STATUS[job_id]["status"] = "FAILED"
+        else:
+            JOB_STATUS[job_id] = "FAILED"
 
 @router.post("/load_song/{song_id}")
 async def load_song(song_id: str):
