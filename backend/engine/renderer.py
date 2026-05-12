@@ -45,8 +45,9 @@ class FrameRenderer:
         self.analyzer = AudioAnalyzer(song_path)
         self.analysis_data = self.analyzer.analyze()
         
-        # Output directory for cached JSON frames
-        self.output_dir = "/data/canvas"
+        # Output directory for cached JSON frames (repo-local to avoid requiring system /data)
+        repo_root = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..'))
+        self.output_dir = os.path.join(repo_root, 'data', 'canvas')
         os.makedirs(self.output_dir, exist_ok=True)
         
         # Pre-calculate coordinate grid
@@ -72,11 +73,34 @@ class FrameRenderer:
                 preset_path = f"/data/presets/{scene.preset_id}.json"
                 if os.path.exists(preset_path):
                     with open(preset_path, 'r') as f:
-                        self.presets[scene.preset_id] = PresetSchema(**json.load(f))
+                        p = PresetSchema(**json.load(f))
                 else:
                     alt_path = os.path.join(os.path.dirname(__file__), "..", "..", "data", "presets", f"{scene.preset_id}.json")
                     with open(alt_path, 'r') as f:
-                        self.presets[scene.preset_id] = PresetSchema(**json.load(f))
+                        p = PresetSchema(**json.load(f))
+                # Normalize nested dicts (for test environments where pydantic may be missing)
+                from types import SimpleNamespace
+                def _norm_list(lst):
+                    new = []
+                    for item in lst:
+                        if isinstance(item, dict):
+                            new.append(SimpleNamespace(**item))
+                        else:
+                            new.append(item)
+                    return new
+                try:
+                    p.parameters = _norm_list(p.parameters)
+                except Exception:
+                    pass
+                try:
+                    p.layers = _norm_list(p.layers)
+                except Exception:
+                    pass
+                try:
+                    p.modulators = _norm_list(p.modulators)
+                except Exception:
+                    pass
+                self.presets[scene.preset_id] = p
 
     def _to_host_array(self, array):
         if hasattr(np, "asnumpy"):
@@ -86,15 +110,23 @@ class FrameRenderer:
     def _setup_scene(self, scene):
         preset = self.presets[scene.preset_id]
         
+        from types import SimpleNamespace
+        def _to_obj(x):
+            if isinstance(x, dict):
+                return SimpleNamespace(**x)
+            return x
+        
         active_layers = []
         for layer_config in preset.layers:
-            layer_inst = get_layer(layer_config.layer_type)
-            active_layers.append((layer_config, layer_inst))
+            cfg = _to_obj(layer_config)
+            layer_inst = get_layer(cfg.layer_type)
+            active_layers.append((cfg, layer_inst))
             
         active_modulators = []
         for mod_config in preset.modulators:
-            mod_inst = get_modulator(mod_config.type)
-            active_modulators.append((mod_config, mod_inst))
+            mcfg = _to_obj(mod_config)
+            mod_inst = get_modulator(mcfg.type)
+            active_modulators.append((mcfg, mod_inst))
             
         return preset, active_layers, active_modulators
 

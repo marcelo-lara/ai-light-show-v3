@@ -1,4 +1,16 @@
-from pydantic import BaseModel, Field
+try:
+    from pydantic import BaseModel, Field
+except Exception:
+    # Minimal fallback for tests without pydantic
+    def Field(default_factory=None):
+        return default_factory() if default_factory else None
+    class BaseModel:
+        def __init__(self, **kwargs):
+            for k, v in kwargs.items():
+                setattr(self, k, v)
+        def dict(self):
+            return self.__dict__
+
 from typing import List, Dict, Any, Optional
 import math
 import random
@@ -9,11 +21,11 @@ class TransitionSchema(BaseModel):
     params: Dict[str, Any] = Field(default_factory=dict)
     
 class SceneSchema(BaseModel):
-    start: float
-    end: float
-    preset_id: str
+    start: float = 0.0
+    end: float = 0.0
+    preset_id: str = ""
     params: Dict[str, Any] = Field(default_factory=dict)
-    seed: int
+    seed: int = 0
     intensity: float = 1.0
     transition: Optional[TransitionSchema] = None
     

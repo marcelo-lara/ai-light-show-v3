@@ -10,8 +10,10 @@ from engine.renderer import FrameRenderer
 
 def test_epic_01_validation():
     # Attempt to find a test song. We assume /data/songs exists.
-    song_dir = "/data/songs"
-    songs = [f for f in os.listdir(song_dir) if f.endswith('.mp3')] if os.path.exists(song_dir) else []
+    # Prefer repo-local test files under ./data/songs for writable CI environments
+    song_dir = os.path.join(os.path.dirname(__file__), '..', 'data', 'songs')
+    song_dir = os.path.normpath(song_dir)
+    songs = [f for f in os.listdir(song_dir) if f.lower().endswith(('.mp3', '.wav'))] if os.path.exists(song_dir) else []
     
     if not songs:
         print(f"Skipping tests, no songs found in {song_dir}.")
