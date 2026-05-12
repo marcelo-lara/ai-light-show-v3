@@ -40,7 +40,7 @@ Use these as small implementation handoff units. Each story should fit one focus
 - [x] 01.B4 Backend compatibility checks: reject missing required fields and unsupported schema versions.
 - [x] 01.B5 Current song state: add backend-owned `current_song` and `current_canvas` state to the playback contract.
 - [x] 01.B6 Empty canvas state: define the contract for a loaded song with no current canvas yet.
-- [ ] 01.B7 Chunked binary frames: split v2 frame payloads into short binary chunks instead of one monolithic `.bin` file to reduce memory pressure and enable progressive loading later.
+- [x] 01.B7 Chunked binary frames: split v2 frame payloads into short binary chunks instead of one monolithic `.bin` file to reduce memory pressure and enable progressive loading later.
 
 ### Frontend Track
 
@@ -53,9 +53,9 @@ Use these as small implementation handoff units. Each story should fit one focus
 
 - [x] 01.V1 Deterministic render test: prove the same song, preset, params, and seed produce identical frames.
 - [x] 01.V2 Stable render id test: prove the same inputs produce the same `render_id`.
-- [ ] 01.V3 Golden sample fixture: add one short canonical render artifact for regression checks.
+- [x] 01.V3 Golden sample fixture: add one short canonical render artifact for regression checks.
 - [x] 01.V4 Empty canvas contract test: prove a song can load without an existing canvas or show.
-- [ ] 01.V5 v1/v2 parity test: add a regression test that loads a short fixture as both legacy JSON frames and v2 binary frames and proves the decoded pixels match exactly.
+- [x] 01.V5 v1/v2 parity test: add a regression test that loads a short fixture as both legacy JSON frames and v2 binary frames and proves the decoded pixels match exactly.
 
 ## Epic 02: Analysis IR
 

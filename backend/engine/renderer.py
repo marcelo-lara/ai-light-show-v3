@@ -253,12 +253,37 @@ class FrameRenderer:
         render_id = hashlib.sha256(hash_input.encode()).hexdigest()[:16]
         base_name = f"{self.song_id}.{render_id}"
         output_path = os.path.join(self.output_dir, f"{base_name}.json")
+        # Legacy single-file path (kept for backward compatibility)
         frame_path = os.path.join(self.output_dir, f"{base_name}.bin")
 
         frame_bytes = self.generate_frames(output_format="rgb24")
 
         print(f"Saving show metadata to {output_path}...")
         
+        bytes_per_frame = self.width * self.height * 3
+        # chunk by frames to limit memory pressure on clients/servers
+        chunk_frames = 200
+        chunk_size = bytes_per_frame * chunk_frames
+
+        # Write chunked files
+        chunk_files = []
+        idx = 0
+        for start in range(0, len(frame_bytes), chunk_size):
+            chunk_name = f"{base_name}.bin.{idx:04d}"
+            chunk_path = os.path.join(self.output_dir, chunk_name)
+            with open(chunk_path, 'wb') as cf:
+                cf.write(frame_bytes[start:start+chunk_size])
+            chunk_files.append(os.path.basename(chunk_path))
+            idx += 1
+
+        # Also keep a monolithic file for backward compatibility (optional)
+        try:
+            with open(frame_path, 'wb') as f:
+                f.write(frame_bytes)
+        except Exception:
+            # If disk is constrained, it's acceptable to omit the monolith.
+            pass
+
         metadata = {
             "schema_version": "v2",
             "render_id": render_id,
@@ -275,8 +300,11 @@ class FrameRenderer:
             "frame_count": int(self.analysis_data['duration'] * self.fps),
             "resolution": {"width": self.width, "height": self.height},
             "frame_encoding": "rgb24",
-            "frame_data_path": os.path.basename(frame_path),
-            "bytes_per_frame": self.width * self.height * 3,
+            # For compatibility, point frame_data_path at the first chunk (if present)
+            "frame_data_path": chunk_files[0] if chunk_files else os.path.basename(frame_path),
+            "frame_chunks": chunk_files,
+            "chunk_frames": chunk_frames,
+            "bytes_per_frame": bytes_per_frame,
             "timeline": self.timeline.dict(),
             "render_diagnostics": getattr(self, 'render_diagnostics', {})
         }
@@ -284,8 +312,5 @@ class FrameRenderer:
         with open(output_path, 'w') as f:
             json.dump({"metadata": metadata}, f)
 
-        with open(frame_path, 'wb') as f:
-            f.write(frame_bytes)
-
-        print("Export complete!")
+        print("Export complete! (wrote {} chunks)".format(len(chunk_files)))
         return output_path
