@@ -1,0 +1,76 @@
+{
+    "preset_id": "undersea_pulse_01",
+    "version": "1.0.0",
+    "name": "Undersea Pulse",
+    "description": "The classic baseline look featuring an ambient linear wave and a beat-driven radial pulse.",
+    "tags": ["ambient", "beat-driven", "classic"],
+    "palette": {
+        "primary": "#9000dd",
+        "secondary": "#333333",
+        "accent": "#ffffff",
+        "background": "#000000"
+    },
+    "blend_mode": "max",
+    "parameters": [
+        {
+            "id": "beat_sensitivity",
+            "label": "Beat Sensitivity",
+            "type": "int",
+            "default": 50,
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "ui_group": "Beat Detection"
+        },
+        {
+            "id": "wave_speed",
+            "label": "Wave Speed",
+            "type": "int",
+            "default": 10,
+            "min": 1,
+            "max": 50,
+            "step": 1,
+            "ui_group": "Wave Logic"
+        },
+        {
+            "id": "wave_height",
+            "label": "Amplitude Base",
+            "type": "int",
+            "default": 5,
+            "min": 1,
+            "max": 20,
+            "step": 1,
+            "ui_group": "Wave Logic"
+        },
+        {
+            "id": "size_multiplier",
+            "label": "Size Multiplier",
+            "type": "int",
+            "default": 50,
+            "min": 1,
+            "max": 100,
+            "step": 1,
+            "ui_group": "Shapes"
+        }
+    ],
+    "layers": [
+        {
+            "id": "bg_wave",
+            "layer_type": "linear_wave",
+            "blend_mode": "max",
+            "params": {
+                "speed_multiplier": "param.wave_speed",
+                "amplitude": "param.wave_height"
+            }
+        },
+        {
+            "id": "fg_pulse",
+            "layer_type": "radial_pulse",
+            "blend_mode": "max",
+            "params": {
+                "sensitivity": "param.beat_sensitivity",
+                "scale": "param.size_multiplier"
+            }
+        }
+    ]
+}
