@@ -1,13 +1,28 @@
 import json
+import os
 from typing import List, Tuple, Dict
 
 # Canonical coordinate system: origin at top-left (0,0), row-major order
 
 def load_fixture_data(fixtures_dir: str) -> Dict[str, List[Dict]]:
-    """Load fixtures.json and pois.json from fixtures_dir."""
-    with open(f"{fixtures_dir}/fixtures.json", "r") as f:
+    """Load fixtures.json and pois.json from fixtures_dir.
+
+    Attempts several fallbacks so tests running from different cwd locations
+    can still load the repo-local data/fixtures directory when available.
+    """
+    # Direct path if absolute or relative to current working dir
+    fixtures_path = os.path.abspath(fixtures_dir)
+    if not os.path.exists(os.path.join(fixtures_path, 'fixtures.json')):
+        # try repo-local data path relative to this file
+        repo_alt = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..', fixtures_dir))
+        if os.path.exists(os.path.join(repo_alt, 'fixtures.json')):
+            fixtures_path = repo_alt
+        else:
+            raise FileNotFoundError(f"Fixtures directory not found: tried {fixtures_dir} and {repo_alt}")
+
+    with open(os.path.join(fixtures_path, 'fixtures.json'), "r") as f:
         fixtures = json.load(f)
-    with open(f"{fixtures_dir}/pois.json", "r") as f:
+    with open(os.path.join(fixtures_path, 'pois.json'), "r") as f:
         pois = json.load(f)
     return {"fixtures": fixtures, "pois": pois}
 

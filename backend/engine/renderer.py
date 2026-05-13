@@ -78,14 +78,18 @@ class FrameRenderer:
                     # try repo-level data/presets (repo may mount ./data -> /data in containers)
                     repo_alt = os.path.join(os.path.dirname(__file__), "..", "..", "data", "presets", f"{scene.preset_id}.json")
                     backend_alt = os.path.join(os.path.dirname(__file__), "..", "data", "presets", f"{scene.preset_id}.json")
+                    backend_presets = os.path.join(os.path.dirname(__file__), "..", "presets", f"{scene.preset_id}.json")
                     if os.path.exists(repo_alt):
                         with open(repo_alt, 'r') as f:
                             p = PresetSchema(**json.load(f))
                     elif os.path.exists(backend_alt):
                         with open(backend_alt, 'r') as f:
                             p = PresetSchema(**json.load(f))
+                    elif os.path.exists(backend_presets):
+                        with open(backend_presets, 'r') as f:
+                            p = PresetSchema(**json.load(f))
                     else:
-                        raise FileNotFoundError(f"Preset file not found for {scene.preset_id}: tried {preset_path}, {repo_alt}, {backend_alt}")
+                        raise FileNotFoundError(f"Preset file not found for {scene.preset_id}: tried {preset_path}, {repo_alt}, {backend_alt}, {backend_presets}")
                 # Normalize nested dicts (for test environments where pydantic may be missing)
                 from types import SimpleNamespace
                 def _norm_list(lst):
@@ -203,13 +207,20 @@ class FrameRenderer:
             
             audio_features = self.analyzer.get_features_at_time(time_sec, self.analysis_data)
             
+            # Ensure palette exists on the preset to avoid None in layers
+            def _palette_or_default(p):
+                pal = getattr(p, 'palette', None)
+                if pal is None:
+                    return type('P', (), { 'primary': '#000000', 'secondary': '#000000', 'accent': '#000000', 'background': '#000000' })()
+                return pal
+
             context = FrameContext(
                 coords=self.coords,
                 features=audio_features,
                 q_buffer=self.q_buffer,
                 width=self.width,
                 height=self.height,
-                palette=preset.palette
+                palette=_palette_or_default(preset)
             )
             
             # Helper to render a specific scene state
@@ -224,7 +235,7 @@ class FrameRenderer:
                     q_buffer=self.q_buffer,
                     width=self.width,
                     height=self.height,
-                    palette=p_preset.palette
+                    palette=_palette_or_default(p_preset)
                 )
                 
                 pixels = np.zeros((self.coords.shape[0], 3), dtype=np.uint8)
