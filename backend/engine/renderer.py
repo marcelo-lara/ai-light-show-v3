@@ -17,6 +17,7 @@ from .preset_schema import PresetSchema
 from .modulators import get_modulator
 from .timeline import TimelineDirector, TimelineSchema
 from .diagnostics import Diagnostics
+from .mod_mapping import apply_mapping
 
 class Compositor:
     @staticmethod
@@ -78,14 +79,18 @@ class FrameRenderer:
                     # try repo-level data/presets (repo may mount ./data -> /data in containers)
                     repo_alt = os.path.join(os.path.dirname(__file__), "..", "..", "data", "presets", f"{scene.preset_id}.json")
                     backend_alt = os.path.join(os.path.dirname(__file__), "..", "data", "presets", f"{scene.preset_id}.json")
+                    backend_presets = os.path.join(os.path.dirname(__file__), "..", "presets", f"{scene.preset_id}.json")
                     if os.path.exists(repo_alt):
                         with open(repo_alt, 'r') as f:
                             p = PresetSchema(**json.load(f))
                     elif os.path.exists(backend_alt):
                         with open(backend_alt, 'r') as f:
                             p = PresetSchema(**json.load(f))
+                    elif os.path.exists(backend_presets):
+                        with open(backend_presets, 'r') as f:
+                            p = PresetSchema(**json.load(f))
                     else:
-                        raise FileNotFoundError(f"Preset file not found for {scene.preset_id}: tried {preset_path}, {repo_alt}, {backend_alt}")
+                        raise FileNotFoundError(f"Preset file not found for {scene.preset_id}: tried {preset_path}, {repo_alt}, {backend_alt}, {backend_presets}")
                 # Normalize nested dicts (for test environments where pydantic may be missing)
                 from types import SimpleNamespace
                 def _norm_list(lst):
@@ -139,6 +144,24 @@ class FrameRenderer:
         return preset, active_layers, active_modulators
 
     def evaluate_param(self, param_val, scene_params, preset, mod_values=None):
+        # Support mapping dicts, e.g. {"mod":"my_lfo","mapping":[{"op":"scale","factor":2},{"op":"clamp","min":0,"max":1}]}
+        if isinstance(param_val, dict):
+            # resolve mod-based value
+            if 'mod' in param_val:
+                mod_id = param_val['mod']
+                base = None
+                if mod_values and mod_id in mod_values:
+                    base = float(mod_values[mod_id])
+                else:
+                    base = float(param_val.get('value', 0.0))
+                if 'mapping' in param_val:
+                    return apply_mapping(base, param_val['mapping'])
+                return base
+            if 'param' in param_val:
+                return self.evaluate_param(f"param.{param_val['param']}", scene_params, preset, mod_values)
+            if 'value' in param_val:
+                return param_val['value']
+
         if mod_values and isinstance(param_val, str) and param_val.startswith("mod."):
             mod_id = param_val.replace("mod.", "")
             if mod_id in mod_values:
@@ -157,7 +180,7 @@ class FrameRenderer:
                     return p.default
         return param_val
 
-    def generate_frames(self, output_format: str = "legacy"):
+    def generate_frames(self, output_format: str = "legacy", progress_callback=None):
         duration = self.analysis_data['duration']
         total_frames = int(duration * self.fps)
         
@@ -168,8 +191,16 @@ class FrameRenderer:
         frames = [] if output_format == "legacy" else bytearray()
         # diagnostics collector
         diagnostics = Diagnostics(self.coords.shape[0])
+        # collect modulator trace per frame for debug/export
+        self.modulator_trace = []
         start_time = time.time()
         print(f"Generating {total_frames} frames at {self.fps} FPS...")
+        # initial progress callback (rendering phase start)
+        if progress_callback:
+            try:
+                progress_callback('render', 0, total_frames)
+            except Exception:
+                pass
         
         active_scene = None
         preset = None
@@ -203,20 +234,28 @@ class FrameRenderer:
             
             audio_features = self.analyzer.get_features_at_time(time_sec, self.analysis_data)
             
+            # Ensure palette exists on the preset to avoid None in layers
+            def _palette_or_default(p):
+                pal = getattr(p, 'palette', None)
+                if pal is None:
+                    return type('P', (), { 'primary': '#000000', 'secondary': '#000000', 'accent': '#000000', 'background': '#000000' })()
+                return pal
+
             context = FrameContext(
                 coords=self.coords,
                 features=audio_features,
                 q_buffer=self.q_buffer,
                 width=self.width,
                 height=self.height,
-                palette=preset.palette
+                palette=_palette_or_default(preset)
             )
             
             # Helper to render a specific scene state
             def render_scene_state(scene, p_preset, p_layers, p_mods):
+                # Evaluate modulators first and return both pixels and raw mod values for inspection
                 mod_values = {}
                 for mod_config, mod_inst in p_mods:
-                    mod_values[mod_config.id] = mod_inst.evaluate(time_sec, audio_features, mod_config.params)
+                    mod_values[mod_config.id] = float(mod_inst.evaluate(time_sec, audio_features, mod_config.params))
                 
                 ctx = FrameContext(
                     coords=self.coords,
@@ -224,7 +263,7 @@ class FrameRenderer:
                     q_buffer=self.q_buffer,
                     width=self.width,
                     height=self.height,
-                    palette=p_preset.palette
+                    palette=_palette_or_default(p_preset)
                 )
                 
                 pixels = np.zeros((self.coords.shape[0], 3), dtype=np.uint8)
@@ -241,10 +280,12 @@ class FrameRenderer:
                         pixels = Compositor.blend_add(pixels, layer_pixels)
                     else:
                         pixels = layer_pixels
-                return pixels
+                return pixels, mod_values
 
-            # Render current scene
-            final_pixels = render_scene_state(active_scene, preset, active_layers, active_modulators)
+            # Render current scene and capture modulator values
+            final_pixels, cur_mod_values = render_scene_state(active_scene, preset, active_layers, active_modulators)
+            # record trace for inspection/debugging
+            self.modulator_trace.append({"timestamp": float(time_sec), "mod_values": {k: float(v) for k, v in cur_mod_values.items()}})
             
             # Apply transition if active
             if active_scene.transition and prev_scene is not None:
@@ -256,7 +297,7 @@ class FrameRenderer:
                     if trans.type == "hard_cut":
                         pass # final_pixels is already current scene
                     elif trans.type == "crossfade":
-                        prev_pixels = render_scene_state(prev_scene, prev_preset, prev_layers, prev_modulators)
+                        prev_pixels, prev_mod_values = render_scene_state(prev_scene, prev_preset, prev_layers, prev_modulators)
                         # Blend based on progress (0.0 = all prev, 1.0 = all current)
                         final_pixels = (prev_pixels * (1.0 - progress) + final_pixels * progress).astype(np.uint8)
                     elif trans.type == "beat_flash":
@@ -280,15 +321,26 @@ class FrameRenderer:
             else:
                 frames.extend(host_pixels.reshape(-1).tobytes())
             
-            if frame_idx % 500 == 0 and frame_idx > 0:
+            if frame_idx % 200 == 0 and frame_idx > 0:
+                if progress_callback:
+                    try:
+                        progress_callback('render', frame_idx, total_frames)
+                    except Exception:
+                        pass
                 print(f"Processed {frame_idx}/{total_frames} frames...")
                 
         end_time = time.time()
         # store diagnostics summary on the renderer for export
         self.render_diagnostics = diagnostics.summary(render_duration=end_time - start_time)
+        # final progress callback
+        if progress_callback:
+            try:
+                progress_callback('render', total_frames, total_frames)
+            except Exception:
+                pass
         return frames
 
-    def export(self):
+    def export(self, progress_callback=None):
         hash_input = f"{self.song_id}_{self.seed}_{json.dumps(self.global_params, sort_keys=True)}_{self.fps}_timeline"
         render_id = hashlib.sha256(hash_input.encode()).hexdigest()[:16]
         base_name = f"{self.song_id}.{render_id}"
@@ -296,7 +348,7 @@ class FrameRenderer:
         # Legacy single-file path (kept for backward compatibility)
         frame_path = os.path.join(self.output_dir, f"{base_name}.bin")
 
-        frame_bytes = self.generate_frames(output_format="rgb24")
+        frame_bytes = self.generate_frames(output_format="rgb24", progress_callback=progress_callback)
 
         print(f"Saving show metadata to {output_path}...")
         
@@ -346,7 +398,8 @@ class FrameRenderer:
             "chunk_frames": chunk_frames,
             "bytes_per_frame": bytes_per_frame,
             "timeline": self.timeline.dict(),
-            "render_diagnostics": getattr(self, 'render_diagnostics', {})
+            "render_diagnostics": getattr(self, 'render_diagnostics', {}),
+            "modulator_trace": getattr(self, 'modulator_trace', [])
         }
 
         with open(output_path, 'w') as f:
