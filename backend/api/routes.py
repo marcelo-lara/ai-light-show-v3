@@ -52,6 +52,10 @@ def run_generation(job_id: str, request: GenerateRequest):
     else:
         JOB_STATUS[job_id]["status"] = "GENERATING"
     try:
+        # Mark analysis phase started
+        if isinstance(JOB_STATUS.get(job_id), dict):
+            JOB_STATUS[job_id]["phase"] = "analysis"
+            JOB_STATUS[job_id]["progress"] = 0
         song_path = f"/data/songs/{request.song_id}.mp3"
         if not os.path.exists(song_path):
             print(f"Error: Song {song_path} not found")
@@ -90,6 +94,7 @@ def run_generation(job_id: str, request: GenerateRequest):
                 JOB_STATUS[job_id] = "FAILED"
             return
             
+        # Instantiate renderer (this may perform analysis during init)
         renderer = FrameRenderer(
             song_path=song_path,
             seed=request.seed,
@@ -97,8 +102,22 @@ def run_generation(job_id: str, request: GenerateRequest):
             preset_version=request.preset_version,
             params=request.params
         )
-        
-        output_path = renderer.export()
+
+        # Analysis completed by renderer init; capture diagnostics
+        if isinstance(JOB_STATUS.get(job_id), dict):
+            JOB_STATUS[job_id]["phase"] = "render"
+            JOB_STATUS[job_id]["analysis_diagnostics"] = renderer.analysis_data.get('diagnostics', {})
+
+        # progress callback updates JOB_STATUS
+        def progress_cb(phase, current, total):
+            if isinstance(JOB_STATUS.get(job_id), dict):
+                JOB_STATUS[job_id]["phase"] = phase
+                try:
+                    JOB_STATUS[job_id]["progress"] = int((current / total) * 100) if total and total > 0 else 0
+                except Exception:
+                    JOB_STATUS[job_id]["progress"] = 0
+
+        output_path = renderer.export(progress_callback=progress_cb)
         CURRENT_SONG = request.song_id
         CURRENT_CANVAS = os.path.basename(output_path)
         
@@ -106,6 +125,7 @@ def run_generation(job_id: str, request: GenerateRequest):
         if isinstance(JOB_STATUS.get(job_id), dict):
             JOB_STATUS[job_id]["status"] = "COMPLETED"
             JOB_STATUS[job_id]["canvas"] = CURRENT_CANVAS
+            JOB_STATUS[job_id]["render_diagnostics"] = getattr(renderer, 'render_diagnostics', {})
         else:
             JOB_STATUS[job_id] = "COMPLETED"
     except Exception as e:
