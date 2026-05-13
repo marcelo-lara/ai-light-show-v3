@@ -17,6 +17,7 @@ from .preset_schema import PresetSchema
 from .modulators import get_modulator
 from .timeline import TimelineDirector, TimelineSchema
 from .diagnostics import Diagnostics
+from .mod_mapping import apply_mapping
 
 class Compositor:
     @staticmethod
@@ -141,8 +142,6 @@ class FrameRenderer:
             active_modulators.append((mcfg, mod_inst))
             
         return preset, active_layers, active_modulators
-
-    from .mod_mapping import apply_mapping
 
     def evaluate_param(self, param_val, scene_params, preset, mod_values=None):
         # Support mapping dicts, e.g. {"mod":"my_lfo","mapping":[{"op":"scale","factor":2},{"op":"clamp","min":0,"max":1}]}
