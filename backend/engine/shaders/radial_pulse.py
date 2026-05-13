@@ -48,7 +48,7 @@ class RadialPulseShader(BaseShader):
         intensity = np.clip(1.0 - np.abs(dist - radius) / thickness, 0.0, 1.0)
         
         # Add some base brightness based on raw bass
-        base_brightness = np.clip(bass_energy * 0.3, 0.0, 1.0)
+        base_brightness = max(0.0, min(float(bass_energy) * 0.3, 1.0))
         total_intensity = np.clip(intensity + base_brightness, 0.0, 1.0)
         
         # Color: Orange/Red for bass

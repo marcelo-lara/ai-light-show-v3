@@ -12,6 +12,8 @@ The canonical canvas is `100x50`, but real hardware or downstream systems may ne
 
 - Define canonical coordinate origin and pixel order.
 - Add fixture/layout mapping config.
+- Load fixture instances from `fixtures.json` and points of interest from `pois.json`.
+- Treat fixture and POI locations as normalized canvas reference coordinates.
 - Support serpentine and linear pixel order.
 - Add brightness limiting and gamma correction.
 - Add export formats required by playback targets.
@@ -32,5 +34,5 @@ The canonical canvas is `100x50`, but real hardware or downstream systems may ne
 
 ## First Iteration
 
-Document canonical pixel order and add a simple export manifest for row-major RGB frames.
+Document canonical pixel order, load fixture and POI reference data, and add a simple export manifest for row-major RGB frames.
 

@@ -21,9 +21,27 @@ That means:
 
 - [Product Principles](./product-principles.md): what production-grade means for this project.
 - [Roadmap](./roadmap.md): phases, epics, and iteration order.
+- [Development Handoff Stories](./development-handoff-stories.md): concise implementation stories for delegating epic work.
 - [Glossary](./glossary.md): shared terms for the engine and UI.
 - [Phases](./phases): phase-level goals and exit criteria.
 - [Epics](./epics): one file per epic story.
+
+## Epic Checklist
+
+Checked items are done. The list is ordered by recommended implementation sequence.
+
+- [ ] [Epic 01: Render Contract](./epics/01-render-contract.md)
+- [ ] [Epic 02: Analysis IR](./epics/02-analysis-ir.md)
+- [ ] [Epic 03: Preset Schema](./epics/03-preset-schema.md)
+- [ ] [Epic 04: Layer Library](./epics/04-layer-library.md)
+- [ ] [Epic 05: Modulation System](./epics/05-modulation-system.md)
+- [ ] [Epic 11: Raindrops Shader](./epics/11-raindrops-shader.md)
+- [ ] [Epic 12: Spectroid Chase Shader](./epics/12-spectroid-chase-shader.md)
+- [ ] [Epic 06: Timeline Director](./epics/06-timeline-director.md)
+- [ ] [Epic 07: Transition System](./epics/07-transition-system.md)
+- [ ] [Epic 08: Preview Console](./epics/08-preview-console.md)
+- [ ] [Epic 09: Render Diagnostics](./epics/09-render-diagnostics.md)
+- [ ] [Epic 10: Fixture Mapping And Export](./epics/10-fixture-mapping-and-export.md)
 
 ## Current Baseline
 

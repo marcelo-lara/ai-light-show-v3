@@ -33,3 +33,8 @@ The current frontend loads cached JSON frames directly. That is a good start, bu
 
 Keep the JSON format, add `schema_version`, `render_id`, `preset_id`, `params`, and `seed`, then update the frontend type definitions.
 
+## Next Steps
+
+- Move from one monolithic binary frame payload to short binary chunks so large canvases can load with lower memory pressure and support progressive playback later.
+- Add a regression fixture that proves a legacy JSON artifact and a v2 binary artifact decode to identical pixels for the same short render.
+

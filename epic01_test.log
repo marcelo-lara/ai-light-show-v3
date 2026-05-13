@@ -1,0 +1,7 @@
+.                                                                        [100%]
+=============================== warnings summary ===============================
+backend/engine/preset_schema.py:98
+  /app/backend/engine/preset_schema.py:98: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.7/migration/
+    @validator("version")
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
