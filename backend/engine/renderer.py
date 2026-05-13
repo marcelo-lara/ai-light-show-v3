@@ -18,16 +18,13 @@ from .modulators import get_modulator
 from .timeline import TimelineDirector, TimelineSchema
 from .diagnostics import Diagnostics
 from .mod_mapping import apply_mapping
+from .diagnostics_compute import (
+    FrameDiagnosticsComputer,
+    DiagnosticsSummary,
+    AssetGenerator,
+)
 
-class Compositor:
-    @staticmethod
-    def blend_max(layer1, layer2):
-        return np.maximum(layer1, layer2)
-        
-    @staticmethod
-    def blend_add(layer1, layer2):
-        # Add and clip to 255
-        return np.clip(layer1.astype(np.uint16) + layer2.astype(np.uint16), 0, 255).astype(np.uint8)
+from .compositor import Compositor
 
 class FrameRenderer:
     def __init__(self, song_path, seed: int, preset_id: str = "undersea_pulse_01", preset_version: str = "1.0.0", params=None, fps=50, width=100, height=50, timeline: TimelineSchema = None):
@@ -189,6 +186,7 @@ class FrameRenderer:
         random.seed(self.seed)
         
         frames = [] if output_format == "legacy" else bytearray()
+        frame_data = []  # Collect frame pixel data for diagnostics
         # diagnostics collector
         diagnostics = Diagnostics(self.coords.shape[0])
         # collect modulator trace per frame for debug/export
@@ -321,6 +319,13 @@ class FrameRenderer:
             else:
                 frames.extend(host_pixels.reshape(-1).tobytes())
             
+            # Store frame for diagnostics (Epic 09.B1-B4)
+            frame_data.append({
+                "index": frame_idx,
+                "timestamp": time_sec,
+                "pixels": host_pixels.copy(),
+            })
+            
             if frame_idx % 200 == 0 and frame_idx > 0:
                 if progress_callback:
                     try:
@@ -330,8 +335,77 @@ class FrameRenderer:
                 print(f"Processed {frame_idx}/{total_frames} frames...")
                 
         end_time = time.time()
+        render_duration_sec = end_time - start_time
+        
+        # Compute frame-level diagnostics and summary (Epic 09.B1-B2)
+        frame_diagnostics_computer = FrameDiagnosticsComputer()
+        summary_computer = DiagnosticsSummary()
+        
+        prev_pixels = None
+        for frame_data_item in frame_data:
+            frame_diag = frame_diagnostics_computer.compute_frame_diagnostics(
+                frame_num=frame_data_item["index"],
+                timestamp=frame_data_item["timestamp"],
+                pixels=frame_data_item["pixels"],
+                prev_pixels=prev_pixels,
+            )
+            summary_computer.add_frame(frame_diag)
+            prev_pixels = frame_data_item["pixels"]
+        
+        diagnostics_summary = summary_computer.compute_summary(
+            render_duration_ms=render_duration_sec * 1000,
+            fps=self.fps,
+        )
+        
+        # Generate assets (Epic 09.B3-B4)
+        contact_sheet_path = None
+        preview_strip_path = None
+        asset_metadata = {}
+        
+        try:
+            # Generate contact sheet
+            contact_sheet_name = f"{self.song_id}.{hashlib.sha256((self.song_id + str(self.seed)).encode()).hexdigest()[:8]}.contact.png"
+            contact_sheet_path = os.path.join(self.output_dir, contact_sheet_name)
+            
+            frame_pixel_arrays = [fd["pixels"] for fd in frame_data]
+            contact_sheet_meta = AssetGenerator.generate_contact_sheet(
+                frames=frame_pixel_arrays,
+                output_path=contact_sheet_path,
+                cols=4,
+                rows=3,
+                frame_width=50,
+                frame_height=25,
+            )
+            asset_metadata["contact_sheet"] = {
+                "filename": contact_sheet_name,
+                "path": contact_sheet_path,
+                "metadata": contact_sheet_meta,
+            }
+            
+            # Generate preview strip
+            preview_strip_name = f"{self.song_id}.{hashlib.sha256((self.song_id + str(self.seed)).encode()).hexdigest()[:8]}.preview.png"
+            preview_strip_path = os.path.join(self.output_dir, preview_strip_name)
+            
+            preview_meta = AssetGenerator.generate_preview_strip(
+                frames=frame_pixel_arrays,
+                output_path=preview_strip_path,
+                strip_height=50,
+                max_width=2000,
+            )
+            asset_metadata["preview_strip"] = {
+                "filename": preview_strip_name,
+                "path": preview_strip_path,
+                "metadata": preview_meta,
+            }
+        except Exception as e:
+            print(f"Warning: Failed to generate preview assets: {e}")
+        
         # store diagnostics summary on the renderer for export
-        self.render_diagnostics = diagnostics.summary(render_duration=end_time - start_time)
+        self.render_diagnostics = {
+            "summary": diagnostics_summary,
+            "frame_diagnostics": [d for d in summary_computer.frame_diagnostics],
+            "assets": asset_metadata,
+        }
         # final progress callback
         if progress_callback:
             try:
@@ -340,13 +414,17 @@ class FrameRenderer:
                 pass
         return frames
 
-    def export(self, progress_callback=None):
+    def export(self, progress_callback=None, canvas_name: str = "default"):
+        # Epic 08.B8: Canvas naming contract - use canvas_name in export path
+        # Format: {song_id}.{canvas_name}.json (sanitize canvas_name)
+        sanitized_canvas_name = "".join(c for c in canvas_name if c.isalnum() or c in "_-").strip()
+        if not sanitized_canvas_name:
+            sanitized_canvas_name = "default"
+        
         hash_input = f"{self.song_id}_{self.seed}_{json.dumps(self.global_params, sort_keys=True)}_{self.fps}_timeline"
         render_id = hashlib.sha256(hash_input.encode()).hexdigest()[:16]
-        base_name = f"{self.song_id}.{render_id}"
+        base_name = f"{self.song_id}.{sanitized_canvas_name}.{render_id}"
         output_path = os.path.join(self.output_dir, f"{base_name}.json")
-        # Legacy single-file path (kept for backward compatibility)
-        frame_path = os.path.join(self.output_dir, f"{base_name}.bin")
 
         frame_bytes = self.generate_frames(output_format="rgb24", progress_callback=progress_callback)
 
@@ -368,14 +446,6 @@ class FrameRenderer:
             chunk_files.append(os.path.basename(chunk_path))
             idx += 1
 
-        # Also keep a monolithic file for backward compatibility (optional)
-        try:
-            with open(frame_path, 'wb') as f:
-                f.write(frame_bytes)
-        except Exception:
-            # If disk is constrained, it's acceptable to omit the monolith.
-            pass
-
         metadata = {
             "schema_version": "v2",
             "render_id": render_id,
@@ -392,8 +462,6 @@ class FrameRenderer:
             "frame_count": int(self.analysis_data['duration'] * self.fps),
             "resolution": {"width": self.width, "height": self.height},
             "frame_encoding": "rgb24",
-            # For compatibility, point frame_data_path at the first chunk (if present)
-            "frame_data_path": chunk_files[0] if chunk_files else os.path.basename(frame_path),
             "frame_chunks": chunk_files,
             "chunk_frames": chunk_frames,
             "bytes_per_frame": bytes_per_frame,

@@ -2,120 +2,21 @@ import { useEffect, useRef, useState } from 'react';
 import WaveSurfer from 'wavesurfer.js';
 import { Pause, Play, Square, Upload } from 'lucide-react';
 import Diagnostics from './Diagnostics';
-import { Fixture } from './types/layers';
+import type { Fixture } from './types/layers';
 
-interface FrameData {
-  timestamp: number;
-  pixels: number[];
-}
-
-export interface PresetParameter {
-  id: string;
-  label: string;
-  type: 'int' | 'float' | 'boolean' | 'color' | 'select';
-  default: boolean | number | string;
-  min?: number;
-  max?: number;
-  step?: number;
-  options?: string[];
-  ui_group: string;
-}
-
-export interface ModulatorConfig {
-  id: string;
-  type: 'lfo' | 'envelope';
-  params: Record<string, unknown>;
-}
-
-export interface AnalysisFeatures {
-  times: number[];
-  beat_times: number[];
-  global_energy: number[];
-  onset_env?: number[];
-  freq_data: {
-    sub_bass: number[];
-    bass: number[];
-    low_mid: number[];
-    high_mid: number[];
-    treble: number[];
-  };
-}
-
-export interface TransitionSchema {
-  type: string;
-  duration: number;
-  params: Record<string, unknown>;
-}
-
-export interface SceneSchema {
-  start: number;
-  end: number;
-  preset_id: string;
-  params: Record<string, unknown>;
-  seed: number;
-  intensity: number;
-  transition?: TransitionSchema;
-}
-
-export interface TimelineSchema {
-  scenes: SceneSchema[];
-}
-
-export interface PresetSummary {
-  preset_id: string;
-  version: string;
-  name: string;
-  description: string;
-  tags: string[];
-  parameters: PresetParameter[];
-  modulators?: ModulatorConfig[];
-}
-
-interface ShowMetadata {
-  schema_version: string;
-  render_id: string;
-  preset_id: string;
-  preset_version: string;
-  seed: number;
-  params: Record<string, unknown>;
-  song_id: string;
-  analysis_id: string;
-  palette?: {
-    primary: string;
-    secondary: string;
-    accent: string;
-    background: string;
-  };
-  analysis_features?: AnalysisFeatures;
-  analysis_diagnostics?: {
-    beat_confidence: number;
-    frame_count: number;
-    sources: string[];
-  };
-  analysis_structure?: {
-    sections: number;
-    phrases_interval: number;
-    section_candidates: number[];
-  };
-  timeline?: TimelineSchema;
-  fps: number;
-  duration: number;
-  frame_count: number;
-  resolution: { width: number; height: number };
-  frame_encoding?: string;
-  frame_data_path?: string;
-  bytes_per_frame?: number;
-}
-
-interface ShowData {
-  metadata: ShowMetadata;
-  frames?: FrameData[];
-}
-
-interface ServerStatePayload {
-  current_song: string | null;
-  current_canvas: string | null;
-}
+import type {
+  FrameData,
+  PresetParameter,
+  ModulatorConfig,
+  AnalysisFeatures,
+  TransitionSchema,
+  SceneSchema,
+  TimelineSchema,
+  PresetSummary,
+  ShowMetadata,
+  ShowData,
+  ServerStatePayload,
+} from './features/app/types';
 
 const MAIN_TAB = 'Main';
 
@@ -213,6 +114,29 @@ function App() {
     return response.json() as Promise<ServerStatePayload>;
   };
 
+  const fetchChunkedFrameData = async (chunkPaths: string[]) => {
+    const chunks = await Promise.all(
+      chunkPaths.map(async (chunkPath) => {
+        const response = await fetch(`/data/canvas/${encodeURIComponent(chunkPath)}`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch frame chunk: ${chunkPath}`);
+        }
+
+        return new Uint8Array(await response.arrayBuffer());
+      }),
+    );
+
+    const totalLength = chunks.reduce((length, chunk) => length + chunk.byteLength, 0);
+    const frameBytes = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const chunk of chunks) {
+      frameBytes.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+
+    return frameBytes;
+  };
+
   const fetchFrames = async (canvasId: string | null = null, songId = selectedSong) => {
     if (!songId && !canvasId) {
       return;
@@ -230,27 +154,17 @@ function App() {
       }
 
       const data: ShowData = await response.json();
-      if (data.metadata.schema_version === 'v1') {
-        metadataRef.current = data.metadata;
-        legacyFramesData.current = data.frames ?? [];
-        binaryFramesData.current = null;
-        setCurrentCanvas(canvasToLoad);
-        return;
-      }
-
-      if (data.metadata.schema_version !== 'v2' || data.metadata.frame_encoding !== 'rgb24' || !data.metadata.frame_data_path) {
+      if (
+        data.metadata.schema_version !== 'v2'
+        || data.metadata.frame_encoding !== 'rgb24'
+        || !data.metadata.frame_chunks?.length
+      ) {
         setServerState('INCOMPATIBLE_SCHEMA');
         clearFrames();
         return;
       }
 
-      const binaryResponse = await fetch(`/data/canvas/${encodeURIComponent(data.metadata.frame_data_path)}`);
-      if (!binaryResponse.ok) {
-        clearFrames();
-        return;
-      }
-
-      const frameBytes = new Uint8Array(await binaryResponse.arrayBuffer());
+      const frameBytes = await fetchChunkedFrameData(data.metadata.frame_chunks);
       const bytesPerFrame = data.metadata.bytes_per_frame
         ?? data.metadata.resolution.width * data.metadata.resolution.height * 3;
       const expectedBytes = bytesPerFrame * data.metadata.frame_count;
@@ -264,6 +178,7 @@ function App() {
       legacyFramesData.current = [];
       binaryFramesData.current = frameBytes;
       setCurrentCanvas(canvasToLoad);
+      setServerState('CONNECTED');
     } catch (error) {
       console.error(error);
       clearFrames();

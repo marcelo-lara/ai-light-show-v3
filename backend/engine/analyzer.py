@@ -82,13 +82,7 @@ class AudioAnalyzer:
             
         times = np.arange(len(sub_bass_energy)) * hop_size / sample_rate
         
-        def norm(arr):
-            arr = np.array(arr)
-            return (arr / (np.max(arr) + 1e-6)).tolist()
-            
-        def smooth(arr, window_size=5):
-            window = np.ones(window_size) / window_size
-            return np.convolve(arr, window, mode='same').tolist()
+        from .analysis_utils import norm, smooth
 
         # Global energy is the sum of all bands
         global_energy_raw = np.array(sub_bass_energy) + np.array(bass_energy) + np.array(low_mid_energy) + np.array(high_mid_energy) + np.array(treble_energy)
