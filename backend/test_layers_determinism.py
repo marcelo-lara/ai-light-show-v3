@@ -62,3 +62,9 @@ def test_background_sweep_and_waveform_ring_determinism():
 
     assert cpu_np.array_equal(to_host(out_b1), to_host(out_b2)), "BackgroundSweepLayer not deterministic"
     assert cpu_np.array_equal(to_host(out_w1), to_host(out_w2)), "WaveformRingLayer not deterministic"
+
+
+if __name__ == "__main__":
+    test_particle_field_layer_seeded_determinism()
+    test_background_sweep_and_waveform_ring_determinism()
+    print("Layer determinism tests passed.")
