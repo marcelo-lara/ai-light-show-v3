@@ -118,64 +118,12 @@ class FrameRenderer:
         return cpu_np.asarray(array)
 
     def _setup_scene(self, scene):
-        preset = self.presets[scene.preset_id]
-        
-        from types import SimpleNamespace
-        def _to_obj(x):
-            if isinstance(x, dict):
-                return SimpleNamespace(**x)
-            return x
-        
-        active_layers = []
-        for layer_config in preset.layers:
-            cfg = _to_obj(layer_config)
-            layer_inst = get_layer(cfg.layer_type)
-            active_layers.append((cfg, layer_inst))
-            
-        active_modulators = []
-        for mod_config in preset.modulators:
-            mcfg = _to_obj(mod_config)
-            mod_inst = get_modulator(mcfg.type)
-            active_modulators.append((mcfg, mod_inst))
-            
-        return preset, active_layers, active_modulators
+        from .renderer_utils import setup_scene
+        return setup_scene(self, scene)
 
     def evaluate_param(self, param_val, scene_params, preset, mod_values=None):
-        # Support mapping dicts, e.g. {"mod":"my_lfo","mapping":[{"op":"scale","factor":2},{"op":"clamp","min":0,"max":1}]}
-        if isinstance(param_val, dict):
-            # resolve mod-based value
-            if 'mod' in param_val:
-                mod_id = param_val['mod']
-                base = None
-                if mod_values and mod_id in mod_values:
-                    base = float(mod_values[mod_id])
-                else:
-                    base = float(param_val.get('value', 0.0))
-                if 'mapping' in param_val:
-                    return apply_mapping(base, param_val['mapping'])
-                return base
-            if 'param' in param_val:
-                return self.evaluate_param(f"param.{param_val['param']}", scene_params, preset, mod_values)
-            if 'value' in param_val:
-                return param_val['value']
-
-        if mod_values and isinstance(param_val, str) and param_val.startswith("mod."):
-            mod_id = param_val.replace("mod.", "")
-            if mod_id in mod_values:
-                return mod_values[mod_id]
-                
-        if isinstance(param_val, str) and param_val.startswith("param."):
-            param_name = param_val.replace("param.", "")
-            # Scene params override global params
-            if param_name in scene_params:
-                return scene_params[param_name]
-            if param_name in self.global_params:
-                return self.global_params[param_name]
-            # fallback to default
-            for p in preset.parameters:
-                if p.id == param_name:
-                    return p.default
-        return param_val
+        from .renderer_utils import evaluate_param as _evaluate_param
+        return _evaluate_param(self, param_val, scene_params, preset, mod_values)
 
     def generate_frames(self, output_format: str = "legacy", progress_callback=None):
         from .renderer_parts import generate_frames as _generate_frames
