@@ -98,6 +98,27 @@ input, select {
   align-items: center;
 }
 
+.canvas-state {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 260px;
+}
+
+.canvas-state-label {
+  color: var(--text-secondary);
+}
+
+.canvas-state-value,
+.canvas-state-empty {
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.1rem;
+}
+
+.canvas-state-empty {
+  color: var(--text-muted);
+}
+
 .selector {
   display: flex;
   align-items: center;
@@ -123,6 +144,20 @@ input, select {
   display: flex;
   align-items: center;
   gap: 1.5rem;
+}
+
+.metadata-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-left: 1rem;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.metadata-row {
+  display: flex;
+  gap: 1rem;
 }
 
 .status-chip {
@@ -236,11 +271,34 @@ input, select {
   min-height: 0; /* Important for flex-child scrolling */
 }
 
-.math-parameters {
+.control-panel {
   flex: 0 0 30%;
   background-color: var(--bg-panel);
-  padding: 0.75rem;
   overflow-y: auto;
+}
+
+.control-tabs {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.75rem 0.75rem 0 0.75rem;
+  overflow-x: auto;
+}
+
+.control-tab {
+  border: 1px solid var(--border-color);
+  padding: 0.45rem 0.7rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.control-tab.active {
+  border-color: var(--accent);
+  color: var(--text-primary);
+  background-color: rgba(144, 0, 221, 0.12);
+}
+
+.control-panel-body {
+  padding: 0.75rem;
 }
 
 .math-section {
@@ -264,6 +322,63 @@ input, select {
   font-size: 0.8rem;
   color: var(--text-secondary);
   margin-bottom: 0.25rem;
+}
+
+.form-group select,
+.form-group input[type="color"] {
+  border-bottom: 1px solid var(--border-color);
+  padding: 0.35rem 0;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.toggle-row input {
+  width: auto;
+}
+
+.preset-summary {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.preset-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tag-chip {
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  padding: 0.15rem 0.45rem;
+}
+
+.render-button {
+  width: 100%;
+  margin-top: 1.5rem;
+  padding: 0.75rem;
+  background-color: var(--accent);
+  color: var(--text-primary);
+  font-weight: bold;
+  letter-spacing: 0.04em;
+}
+
+.render-button:disabled {
+  background-color: var(--border-color);
+  color: var(--text-muted);
+}
+
+.empty-panel {
+  color: var(--text-muted);
+  font-size: 0.85rem;
 }
 .form-group input[type="range"] {
   -webkit-appearance: none;

@@ -6,7 +6,7 @@ services:
       - ./backend:/app
       - ./data:/data
     ports:
-      - "8000:8000"
+      - "3401:8000"
     command: python main.py
     deploy:
       resources:
@@ -20,7 +20,7 @@ services:
     build:
       context: ./frontend
     ports:
-      - "5173:5173"
+      - "3400:3400"
     volumes:
       - ./frontend:/app
       - ./data:/data
