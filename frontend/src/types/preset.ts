@@ -45,3 +45,33 @@ export interface PresetSummary {
   parameters: PresetParameter[];
   modulators?: ModulatorConfig[];
 }
+
+// Modulator value shape exposed by the backend for UI inspection
+export interface ModulatorValue {
+  id: string;
+  value: number;
+}
+
+// Mapping operation shape the frontend may display or construct
+export interface MappingOp {
+  op: 'scale' | 'clamp' | 'invert' | 'quantize' | 'curve' | 'smooth' | 'lag' | string;
+  // optional parameters for ops
+  factor?: number;
+  offset?: number;
+  min?: number;
+  max?: number;
+  step?: number;
+  gamma?: number;
+}
+
+export interface ModulatorTraceEntry {
+  timestamp: number;
+  mod_values: Record<string, number>;
+}
+
+// Shape the UI can use to inspect live modulators and mappings
+export interface ModulatorInspection {
+  current_values: Record<string, number>;
+  trace: ModulatorTraceEntry[];
+  mappings?: Record<string, MappingOp[]>;
+}
