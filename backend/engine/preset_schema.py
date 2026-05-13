@@ -1,6 +1,8 @@
 try:
     from pydantic import BaseModel, Field, validator
+    PYDANTIC_AVAILABLE = True
 except Exception:
+    PYDANTIC_AVAILABLE = False
     # Minimal fallback to avoid hard dependency in test environments
     from typing import Any
     class BaseModel:
@@ -28,6 +30,28 @@ class ParameterSchema(BaseModel):
     step: Optional[float] = None
     options: Optional[List[str]] = None
     ui_group: str = "General"
+
+    def __init__(self, **data):
+        # enforce basic type constraints even without pydantic
+        t = data.get('type', 'int')
+        default = data.get('default', None)
+        if default is not None:
+            if t == 'int' and not isinstance(default, int):
+                raise ValueError("Parameter default must be int for type 'int'")
+            if t == 'float' and not isinstance(default, (int, float)):
+                raise ValueError("Parameter default must be float for type 'float'")
+            if t == 'boolean' and not isinstance(default, bool):
+                raise ValueError("Parameter default must be boolean for type 'boolean'")
+            if t in ('color','select') and not isinstance(default, str):
+                raise ValueError("Parameter default must be string for type 'color' or 'select'")
+            if t == 'select' and 'options' in data and data['options'] and default not in data['options']:
+                raise ValueError("Parameter default must be one of options for type 'select'")
+        try:
+            super().__init__(**data)
+        except Exception:
+            # fallback Basic BaseModel has no super init behavior
+            for k, v in data.items():
+                setattr(self, k, v)
 
 class LayerConfig(BaseModel):
     id: str = ""
@@ -57,6 +81,19 @@ class PresetSchema(BaseModel):
     blend_mode: str = "max"
     modulators: List[ModulatorConfig] = Field(default_factory=list)
     layers: List[LayerConfig] = Field(default_factory=list)
+
+    def __init__(self, **data):
+        # If pydantic is available, let it perform validation and raise ValidationError.
+        if PYDANTIC_AVAILABLE:
+            # Use pydantic's normal initialization which will raise ValidationError on invalid data
+            super().__init__(**data)
+        else:
+            # Fallback to simple attribute setting when pydantic isn't available
+            try:
+                super().__init__(**data)
+            except Exception:
+                for k, v in data.items():
+                    setattr(self, k, v)
 
     @validator("version")
     def version_must_be_v1(cls, v):

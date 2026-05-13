@@ -145,11 +145,26 @@ class WaveformRingLayer(BaseLayer):
             
         return colors
 
+class SolidLayer(BaseLayer):
+    """Simple solid fill layer using the palette primary color."""
+    def render(self, context: FrameContext, **kwargs):
+        N = context.coords.shape[0]
+        colors = np.zeros((N, 3), dtype=np.uint8)
+        # Be defensive: palette may be None in some unit tests; fall back to white
+        if context is None or getattr(context, 'palette', None) is None or getattr(context.palette, 'primary', None) is None:
+            primary = (255, 255, 255)
+        else:
+            primary = hex_to_rgb(context.palette.primary)
+        for i in range(3):
+            colors[:, i] = primary[i]
+        return colors
+
 # Registry
 LAYER_REGISTRY = {
     "bg_sweep": BackgroundSweepLayer,
     "particle_field": ParticleFieldLayer,
-    "waveform_ring": WaveformRingLayer
+    "waveform_ring": WaveformRingLayer,
+    "solid": SolidLayer
 }
 
 # We also need to map the old ones:
@@ -189,6 +204,17 @@ LAYER_REGISTRY["raindrops"] = RaindropsLayer
 LAYER_REGISTRY["spectroid_chase"] = SpectroidChaseLayer
 
 def get_layer(layer_type: str):
-    if layer_type not in LAYER_REGISTRY:
-        raise ValueError(f"Unknown layer type: {layer_type}")
-    return LAYER_REGISTRY[layer_type]()
+    # Direct match
+    if layer_type in LAYER_REGISTRY:
+        return LAYER_REGISTRY[layer_type]()
+    # Case-insensitive fallback
+    ltype_lower = layer_type.lower() if isinstance(layer_type, str) else ''
+    for k in LAYER_REGISTRY.keys():
+        if k.lower() == ltype_lower:
+            return LAYER_REGISTRY[k]()
+    # Try common synonyms (e.g., 'solid' vs 'SolidLayer')
+    simple_name = layer_type.replace('Layer', '') if isinstance(layer_type, str) else layer_type
+    for k in LAYER_REGISTRY.keys():
+        if k.lower() == str(simple_name).lower():
+            return LAYER_REGISTRY[k]()
+    raise ValueError(f"Unknown layer type: {layer_type}")
