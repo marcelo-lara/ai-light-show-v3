@@ -1,0 +1,35 @@
+name: Backend Docker build & smoke tests
+
+on:
+  push:
+    branches: [ main, wave-02-copilot ]
+  pull_request:
+    branches: [ main, wave-02-copilot ]
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare data directories
+        run: |
+          mkdir -p data/songs data/presets
+
+      - name: Build backend Docker image
+        run: |
+          docker build -t ai-light-show-backend -f backend/Dockerfile .
+
+      - name: Run renderer smoke test inside container
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}":/app \
+            -v "${{ github.workspace }}/data":/data \
+            -w /app \
+            ai-light-show-backend \
+            pytest -q backend/test_renderer.py::test_epic_01_validation
+        # Some builds may pull large CUDA base images; allow generous timeout
+        timeout-minutes: 30
