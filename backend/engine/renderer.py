@@ -203,13 +203,20 @@ class FrameRenderer:
             
             audio_features = self.analyzer.get_features_at_time(time_sec, self.analysis_data)
             
+            # Ensure palette exists on the preset to avoid None in layers
+            def _palette_or_default(p):
+                pal = getattr(p, 'palette', None)
+                if pal is None:
+                    return type('P', (), { 'primary': '#000000', 'secondary': '#000000', 'accent': '#000000', 'background': '#000000' })()
+                return pal
+
             context = FrameContext(
                 coords=self.coords,
                 features=audio_features,
                 q_buffer=self.q_buffer,
                 width=self.width,
                 height=self.height,
-                palette=preset.palette
+                palette=_palette_or_default(preset)
             )
             
             # Helper to render a specific scene state
@@ -224,7 +231,7 @@ class FrameRenderer:
                     q_buffer=self.q_buffer,
                     width=self.width,
                     height=self.height,
-                    palette=p_preset.palette
+                    palette=_palette_or_default(p_preset)
                 )
                 
                 pixels = np.zeros((self.coords.shape[0], 3), dtype=np.uint8)

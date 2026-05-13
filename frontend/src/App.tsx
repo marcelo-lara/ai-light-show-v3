@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import WaveSurfer from 'wavesurfer.js';
 import { Pause, Play, Square, Upload } from 'lucide-react';
 import Diagnostics from './Diagnostics';
+import { Fixture } from './types/layers';
 
 interface FrameData {
   timestamp: number;
@@ -24,6 +25,20 @@ export interface ModulatorConfig {
   id: string;
   type: 'lfo' | 'envelope';
   params: Record<string, unknown>;
+}
+
+export interface AnalysisFeatures {
+  times: number[];
+  beat_times: number[];
+  global_energy: number[];
+  onset_env?: number[];
+  freq_data: {
+    sub_bass: number[];
+    bass: number[];
+    low_mid: number[];
+    high_mid: number[];
+    treble: number[];
+  };
 }
 
 export interface TransitionSchema {
@@ -71,6 +86,7 @@ interface ShowMetadata {
     accent: string;
     background: string;
   };
+  analysis_features?: AnalysisFeatures;
   analysis_diagnostics?: {
     beat_confidence: number;
     frame_count: number;
@@ -127,7 +143,7 @@ function App() {
   const imageDataRef = useRef<ImageData | null>(null);
   const animationRef = useRef<number>(0);
 
-  const overlaysRef = useRef({ fixtures: [] as any[], pois: [] as any[] });
+  const overlaysRef = useRef({ fixtures: [] as Fixture[], pois: [] as any[] });
 
   const loadOverlays = async () => {
     try {
